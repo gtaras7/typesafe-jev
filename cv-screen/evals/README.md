@@ -41,9 +41,13 @@ here would conflate "the model was wrong" with "we changed a weight".
 | `cv_b_other` | **Byte-identical** to the file above. Scoring it twice measures run-to-run variance, not accuracy |
 | `Eirini_Stamatou_CV.pdf` | The middle case: accepted degree, food-adjacent roles, four employers in four years, under 28 |
 | `Dimitrios_Konstantinou_CV.pdf` | The clear negative: mechanical engineer, no food sector at all |
-| `cv_a_foodchem` | Negative in English: Business Computing, IT experience only. The key name is misleading, there is no food chemistry in it |
+| `cv_a_foodchem` | Negative in English: Information Systems, IT experience only. The key name is misleading, there is no food chemistry in it |
 
 Five entries, **four distinct CVs**. The duplication is intentional.
+
+None of these documents are in this repository: `data/` is gitignored on purpose, since it holds screened
+CVs and the run log. The names above are the files on the machine that built the labels, and
+`labels.json` maps each label to a quote so a reader can see what it was judged against.
 
 ## Expectations
 
