@@ -574,7 +574,7 @@ const MOCK_META = {
     id: "entry-level-job", roleTitle: "Entry level position", minExperienceYears: 1,
     acceptedEducation: [],
     educationNoMatchKey: "other_not_accepted",
-    weights: { experience_years: 0.20, education: 0, food_sector: 0, age_over_28: 0, military: 0, stability: 0.05 },
+    weights: { experience_years: 0.10, education: 0, food_sector: 0, age_over_28: 0, military: 0, stability: 0.05 },
     caps: { educationNotAccepted: 0.9, noFoodSector: 0.95 },
     unknownCredit: 0.47,
     stability: { maxEmployers: 5, windowYears: 3 },
@@ -702,10 +702,10 @@ const MOCK_PRESETS = [
 ];
 // Attach slim policies so mock preset switching still updates Settings.
 const MOCK_WEIGHTS = {
-  "entry-level-job":  { experience_years: 0.20, stability: 0.05 },
-  "junior-level-job": { experience_years: 0.25, stability: 0.15 },
-  "senior-level-job": { experience_years: 0.15, stability: 0.20 },
-  "ceo-level-job":    { experience_years: 0.10, stability: 0.15 }
+  "entry-level-job":  { experience_years: 0.10, stability: 0.05 },
+  "junior-level-job": { experience_years: 0.15, stability: 0.10 },
+  "senior-level-job": { experience_years: 0.20, stability: 0.15 },
+  "ceo-level-job":    { experience_years: 0.25, stability: 0.20 }
 };
 const MOCK_EXTRAS = {
   "entry-level-job": [

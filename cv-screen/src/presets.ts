@@ -58,9 +58,9 @@ export const PRESETS: Preset[] = [
       ],
       acceptedEducation: [],
       educationNoMatchKey: "other_not_accepted",
-      // Entry: years count a little; hopping is forgiven. Motivation + hands-on carry the score.
+      // Entry: years barely matter — candidates won't have many. Motivation + hands-on carry the score.
       weights: {
-        experience_years: 0.20,
+        experience_years: 0.10,
         education: 0,
         food_sector: 0,
         age_over_28: 0,
@@ -215,14 +215,14 @@ export const PRESETS: Preset[] = [
       ],
       acceptedEducation: [],
       educationNoMatchKey: "other_not_accepted",
-      // Junior: enough years to clear the bar, and early stability starts to matter.
+      // Junior: clearing the years bar starts to matter; early stability too.
       weights: {
-        experience_years: 0.25,
+        experience_years: 0.15,
         education: 0,
         food_sector: 0,
         age_over_28: 0,
         military: 0,
-        stability: 0.15,
+        stability: 0.10,
       },
       caps: { educationNotAccepted: 0.85, noFoodSector: 0.95 },
       unknownCredit: 0.47,
@@ -374,13 +374,13 @@ export const PRESETS: Preset[] = [
       acceptedEducation: [],
       educationNoMatchKey: "other_not_accepted",
       weights: {
-        // Years alone don't make a senior; staying power and depth/ownership do.
-        experience_years: 0.15,
+        // Senior: depth/ownership still lead, but years and staying power weigh more than at junior.
+        experience_years: 0.20,
         education: 0,
         food_sector: 0,
         age_over_28: 0,
         military: 0,
-        stability: 0.20,
+        stability: 0.15,
       },
       caps: { educationNotAccepted: 0.85, noFoodSector: 0.95 },
       unknownCredit: 0.47,
@@ -534,13 +534,14 @@ export const PRESETS: Preset[] = [
       acceptedEducation: [],
       educationNoMatchKey: "other_not_accepted",
       weights: {
-        // Tenure is secondary to org-level leadership; some continuity still counts.
-        experience_years: 0.10,
+        // CEO: a long track record and continuity matter more than at any lower level;
+        // org-level leadership still carries the bulk of the score via extra fields.
+        experience_years: 0.25,
         education: 0,
         food_sector: 0,
         age_over_28: 0,
         military: 0,
-        stability: 0.15,
+        stability: 0.20,
       },
       caps: { educationNotAccepted: 0.90, noFoodSector: 0.95 },
       unknownCredit: 0.47,

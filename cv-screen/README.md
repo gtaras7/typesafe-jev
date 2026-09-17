@@ -41,6 +41,29 @@ re-scores every stored candidate for 0 tokens, because the judgments are still v
 says so in plain words, and if the change asks a question some CVs have never been asked, it
 offers a button to re-scan only those.
 
+## Security configuration
+
+Two env vars gate the security-sensitive operations.  Add them to `.env` (see `.env.example`).
+
+**`CV_SCREEN_API_TOKEN`** — shared secret for every route that spends the API key, mutates state, or returns CV data.
+
+```bash
+# generate one
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+The browser UI stores the token in `localStorage` and sends it as `Authorization: Bearer <token>` on every request.  On first load, if the server has a token configured, the UI prompts for it.  To reset: `localStorage.removeItem("cv_screen_token")` in the browser console.
+
+When `CV_SCREEN_API_TOKEN` is **not** set the server prints a warning and allows all routes from loopback — acceptable for a solo local demo, not for a shared machine or any network exposure.
+
+**`SCAN_ROOT`** — the directory that `POST /api/batch/scan` (the "scan a folder on this machine" button) is allowed to read.  Defaults to the project root.  Any path that does not resolve inside this directory is rejected with a 400.
+
+```bash
+SCAN_ROOT=/home/you/cvs
+```
+
+Set it in `.env` to the folder that holds your CVs.  Symlinks inside the tree are resolved before the containment check, so symlink-escape attempts are also blocked.
+
 ## Run it
 
 Node 22 and `npm install` (dev dependencies only: `tsx`, `typescript`, `@types/node`).
