@@ -1,0 +1,1894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jev CV Screening</title>
+<style>
+  :root {
+    --bg: #0e1013;
+    --panel: #16191f;
+    --panel2: #1c2029;
+    --line: #262b35;
+    --ink: #e7eaf0;
+    --dim: #8b94a6;
+    --good: #3ecf8e;
+    --warn: #f5c451;
+    --bad: #ff6b6b;
+    --accent: #7c8cff;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  button { font: inherit; cursor: pointer; }
+  input, textarea, select { font: inherit; }
+
+  /* ---------- header ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--bg); border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner { padding: 12px 20px 0; }
+  .brand-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 18px; letter-spacing: -.01em; }
+  .brand-row .meta { color: var(--dim); font-size: 13px; }
+  .pill { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+  .pill.ok { color: var(--good); border-color: #22402f; }
+  .pill.no { color: var(--bad); border-color: #402424; }
+
+  .stats {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    padding: 10px 0 12px; font-size: 12.5px; color: var(--dim);
+  }
+  .stat { display: inline-flex; align-items: baseline; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; }
+  .stat b { color: var(--ink); font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  .stat-sep { width: 1px; height: 16px; background: var(--line); flex: none; }
+  .stat.scope { color: var(--dim); font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .stat .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.interview { background: var(--good); }
+  .dot.maybe { background: var(--warn); }
+  .dot.pass { background: var(--bad); }
+  .dot.review { background: var(--accent); }
+
+  /* ---------- tabs ---------- */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+  .tab {
+    background: transparent; color: var(--dim); border: 0; border-bottom: 2px solid transparent;
+    padding: 10px 16px; font-size: 14px; font-weight: 600;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+
+  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .card + .card { margin-top: 16px; }
+  h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); font-weight: 600; }
+  label { display: block; font-size: 12px; color: var(--dim); margin: 12px 0 4px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; background: var(--panel2); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 14px;
+  }
+  textarea { min-height: 120px; resize: vertical; }
+  .hint { color: var(--dim); font-size: 12.5px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row.end { justify-content: flex-end; margin-top: 14px; }
+
+  .btn { background: var(--accent); color: #0b0d11; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 650; }
+  .btn.ghost { background: transparent; color: var(--dim); border: 1px solid var(--line); font-weight: 500; }
+  .btn:disabled { opacity: .5; cursor: progress; }
+  .btn:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn.big { font-size: 16px; padding: 14px 28px; }
+
+  /* ---------- screen tab ---------- */
+  #dropzone {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 40px 20px;
+    text-align: center; color: var(--dim); cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  #dropzone.over { border-color: var(--accent); background: #141a26; color: var(--ink); }
+  #dropzone .big { font-size: 18px; color: var(--ink); font-weight: 600; margin-bottom: 6px; }
+  #file-summary { margin-top: 12px; font-size: 13px; color: var(--dim); }
+  #file-summary b { color: var(--ink); }
+
+  .progress-wrap { margin-top: 16px; }
+  .progress-track { height: 10px; border-radius: 6px; background: #232833; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .2s; }
+  .progress-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; color: var(--dim); }
+  .progress-meta b { color: var(--ink); font-family: var(--mono); }
+
+  .batch-results { margin-top: 12px; max-height: 320px; overflow: auto; }
+  .batch-row {
+    display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-bottom: 1px solid #1e232c;
+    font-size: 13px; cursor: pointer;
+  }
+  .batch-row:hover { background: var(--panel2); }
+  .batch-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { font-weight: 700; font-size: 11px; padding: 3px 9px; border-radius: 999px; letter-spacing: .03em; white-space: nowrap; }
+  .badge.INTERVIEW { background: #123528; color: var(--good); border: 1px solid #245c40; }
+  .badge.MAYBE { background: #38301a; color: var(--warn); border: 1px solid #6b5a2a; }
+  .badge.PASS { background: #3a1f1f; color: var(--bad); border: 1px solid #6e3838; }
+  .badge.REVIEW { background: #1d1a2e; color: var(--accent); border: 1px solid #3a3560; }
+  .sc { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+
+  /* ---------- candidates tab ---------- */
+  .cand-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .cand-toolbar input[type=text] { width: 260px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    background: var(--panel2); color: var(--dim); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 12px; font-size: 12.5px;
+  }
+  .chip.active { background: var(--accent); color: #0b0d11; border-color: var(--accent); font-weight: 600; }
+
+  .table-wrap { overflow: auto; max-height: 60vh; border: 1px solid var(--line); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    position: sticky; top: 0; z-index: 5; background: var(--panel2);
+    text-align: left; color: var(--dim); font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .05em; padding: 9px 10px;
+    border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--ink); }
+  thead th .arrow { color: var(--accent); }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid #1e232c; white-space: nowrap; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--panel2); }
+  tbody tr.selected { background: #1a2130; }
+  td.num { font-family: var(--mono); text-align: right; }
+  td.dim { text-align: center; }
+  .mini { width: 34px; height: 5px; border-radius: 3px; background: #232833; overflow: hidden; display: inline-block; vertical-align: middle; }
+  .mini i { display: block; height: 100%; }
+  .g-green { background: var(--good); } .g-amber { background: var(--warn); } .g-red { background: var(--bad); } .g-accent { background: var(--accent); }
+  .marker { color: var(--accent); font-size: 12px; }
+  .stale { color: var(--warn); font-size: 11px; }
+
+  /* ---------- detail panel ---------- */
+  #detail-panel { margin-top: 16px; }
+  .detail-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .big { font-size: 40px; font-weight: 700; font-family: var(--mono); letter-spacing: -.02em; line-height: 1; }
+  .sub { color: var(--dim); font-size: 12.5px; margin-top: 6px; }
+  /* The bars in the detail panel. The fill MUST be display: block: as an inline span it
+     silently ignored both its width and its height, so every bar rendered empty no matter
+     what the value was. */
+  .dim-bar { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1e232c; }
+  .dim-bar .lbl { width: 190px; font-size: 13px; }
+  .dim-bar .track { position: relative; flex: 1; max-width: 260px; height: 8px; border-radius: 4px; background: #232833; overflow: hidden; }
+  .dim-bar .track::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #333a48; }
+  .dim-bar .fill { display: block; height: 100%; border-radius: 4px; }
+  .dim-bar .val { font-family: var(--mono); font-size: 12px; width: 52px; text-align: right; color: var(--dim); }
+  .dim-bar .basis { flex: 1; color: var(--dim); font-size: 12px; }
+
+  /* ---------- what we asked and what Jev answered ---------- */
+  .pw { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(260px, 1.1fr) 110px; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px solid #1e232c; }
+  @media (max-width: 900px) { .pw { grid-template-columns: 1fr; } }
+  .pw-key { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+  .pw-q { color: var(--dim); font-size: 12px; line-height: 1.45; margin-top: 5px; }
+  .pw-big { font-size: 17px; font-weight: 650; color: var(--ink); }
+  .pw-big.yes { color: var(--good); }
+  .pw-big.no { color: var(--bad); }
+  .pw-conf { color: var(--dim); font-size: 12px; margin-left: 10px; white-space: nowrap; }
+  .pw-answer { display: flex; align-items: baseline; flex-wrap: wrap; }
+  .pw-probs { margin-top: 8px; }
+  .pw-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; color: var(--dim); font-size: 12px; }
+  .pw-row.top { color: var(--ink); }
+  .pw-row .pw-k { width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pw-row .pw-bar { display: block; flex: 1; max-width: 150px; height: 5px; border-radius: 3px; background: #232833; overflow: hidden; }
+  .pw-row .pw-bar i { display: block; height: 100%; border-radius: 3px; background: #4a5262; }
+  .pw-row.top .pw-bar i { background: var(--accent); }
+  .pw-row .pw-pc { font-family: var(--mono); font-size: 11.5px; width: 38px; text-align: right; }
+  .pw-slider { position: relative; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #402424 0%, #232833 50%, #22402f 100%); margin-top: 8px; max-width: 260px; }
+  .pw-slider i { position: absolute; top: -3px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #0e1013; }
+  .pw-right { text-align: right; }
+  .pw-tag { display: inline-block; font-size: 11px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--dim); background: var(--panel2); }
+  .pw-constraint { display: block; color: var(--dim); font-size: 11.5px; margin-top: 6px; }
+  .pw-none { color: var(--dim); font-size: 13px; }
+  .gates { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .gate { font-size: 12px; font-family: var(--mono); padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel2); }
+  .gate.ok { color: var(--good); border-color: #22402f; }
+  .gate.fail { color: var(--bad); border-color: #402424; }
+  .note { border-left: 3px solid var(--warn); background: #1d1a12; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 13px; }
+  .note.err { border-color: var(--bad); background: #1d1212; }
+  .note.soft { border-color: var(--accent); background: #16181f; }
+  .qa { margin-top: 6px; padding: 8px 0; border-bottom: 1px solid #1e232c; }
+  .qa .q { color: var(--dim); font-size: 12.5px; }
+  .qa .a { font-family: var(--mono); font-size: 12px; margin-top: 3px; color: var(--ink); }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--dim); font-size: 12.5px; }
+  pre { background: #0b0d11; border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; max-height: 320px; font-family: var(--mono); font-size: 11.5px; color: #c7cede; }
+
+  /* ---------- settings tab ---------- */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
+  .weight-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .weight-row .lbl { width: 200px; font-size: 13px; }
+  .weight-row .lbl.wide { width: auto; flex: 1; }
+  .num { width: 62px; padding: 3px 7px; font: inherit; font-size: 12.5px; font-family: var(--mono); background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+  .num:focus { outline: 1px solid var(--accent); }
+  .btn.ghost.danger { color: var(--bad); border-color: #402424; }
+  .btn.ghost.danger:hover { border-color: var(--bad); }
+  .btn.ghost.danger.armed { background: var(--bad); border-color: var(--bad); color: #12090a; }
+
+  /* Scrollbars in the app's own colours. The default macOS ones are light and drift across
+     the dark theme, which is exactly what a custom-styled container should avoid. */
+  * { scrollbar-color: #2b313d transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2b313d; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #3d4553; background-clip: content-box; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+  .weight-row input[type=range] { flex: 1; }
+  .weight-row .wv { font-family: var(--mono); font-size: 12px; width: 40px; text-align: right; color: var(--dim); }
+  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1e232c; }
+  .toggle-row .lbl { flex: 1; font-size: 13.5px; }
+  .toggle-row .hint { font-size: 12px; }
+  .switch { position: relative; width: 40px; height: 22px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #2a303c; border-radius: 22px; transition: .2s; }
+  .slider:before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(18px); }
+  .chip-remove { background: transparent; border: 0; color: var(--bad); font-size: 14px; padding: 0 2px; }
+  .chip-add { background: var(--panel2); color: var(--dim); border: 1px dashed var(--line); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; }
+  .chip-add:hover { color: var(--ink); border-color: var(--accent); }
+
+  .field-card { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 10px; }
+  .field-card .head { display: flex; align-items: center; gap: 10px; }
+  .field-card .head .lbl { flex: 1; font-weight: 600; font-size: 14px; }
+  .field-card .kindtag { font-size: 11px; color: var(--dim); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; }
+  .field-card .help { color: var(--dim); font-size: 12.5px; margin-top: 4px; }
+  .field-card .body { margin-top: 10px; }
+  .field-card .body label { margin-top: 8px; }
+  .field-card textarea { min-height: 60px; }
+  .level-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .level-row input[type=text] { flex: 1; }
+  .level-row .credit { width: 70px; font-family: var(--mono); font-size: 12px; color: var(--dim); text-align: right; }
+  .opt-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .opt-row input[type=text] { flex: 1; }
+  .opt-row input[type=number] { width: 80px; }
+  .del { background: transparent; border: 0; color: var(--bad); font-size: 15px; }
+
+  .settings-footer {
+    position: sticky; bottom: 0; z-index: 15; margin-top: 20px;
+    background: var(--bg); border-top: 1px solid var(--line); padding: 14px 0;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  #save-result { font-size: 13px; color: var(--good); }
+  #save-result.err { color: var(--bad); }
+  .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -2px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .empty { color: var(--dim); font-size: 13.5px; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-row">
+      <h1>Jev CV Screening</h1>
+      <span class="meta" id="role-line">loading role...</span>
+    </div>
+    <div class="stats" id="stats-bar">
+      <span class="stat"><span class="dot interview"></span>Ready to interview <b id="stat-interview">-</b></span>
+      <span class="stat"><span class="dot maybe"></span>Maybe <b id="stat-maybe">-</b></span>
+      <span class="stat"><span class="dot pass"></span>Pass <b id="stat-pass">-</b></span>
+      <span class="stat"><span class="dot review"></span>Needs review <b id="stat-review">-</b></span>
+      <span class="stat">Total <b id="stat-total">-</b></span>
+      <span class="stat-sep"></span>
+      <span class="stat scope" id="stats-scope">all runs</span>
+      <span class="stat">Run time <b id="stat-runwall">-</b></span>
+      <span class="stat">Avg ms per CV <b id="stat-avgms">-</b></span>
+      <span class="stat">CVs per minute <b id="stat-cpm">-</b></span>
+      <span class="stat">Tokens <b id="stat-tokens">-</b></span>
+      <span class="stat">Cost <b id="stat-cost">-</b></span>
+      <span class="stat">Model <b id="stat-model">-</b></span>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="screen">Screen</button>
+      <button class="tab" data-tab="candidates">Candidates</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ================= SCREEN ================= -->
+  <section class="panel active" id="panel-screen">
+    <div class="card">
+      <h2>Screen candidates</h2>
+      <div id="dropzone">
+        <div class="big">Drop CVs here</div>
+        <div>One PDF, many PDFs, or a whole folder. Click to choose files.</div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn ghost" id="choose-files">Choose files</button>
+        <button class="btn ghost" id="choose-folder">Choose a folder</button>
+        <input type="file" id="file-input" accept="application/pdf,.pdf,.txt" multiple hidden />
+        <input type="file" id="folder-input" webkitdirectory multiple hidden />
+      </div>
+      <div id="file-summary" class="hint"></div>
+
+      <label for="paste-text">Or paste a CV as text</label>
+      <textarea id="paste-text" placeholder="Paste the CV text here, then press Screen with Jev."></textarea>
+
+      <label for="preset-select">Role preset</label>
+      <select id="preset-select"></select>
+
+      <div class="row end">
+        <button class="btn big" id="screen-btn">Screen with Jev</button>
+      </div>
+
+      <div id="batch-progress" style="display:none">
+        <div class="progress-wrap">
+          <div class="progress-track"><div class="progress-fill" id="batch-bar"></div></div>
+          <div class="progress-meta">
+            <span>Screened <b id="batch-count">0/0</b></span>
+            <span>CVs per minute <b id="batch-cpm">-</b></span>
+            <span>Avg ms per CV <b id="batch-avgms">-</b></span>
+            <span>Time left <b id="batch-eta">-</b></span>
+            <span>Tokens <b id="batch-tokens">-</b></span>
+          </div>
+        </div>
+        <div class="batch-results" id="batch-results"></div>
+      </div>
+      <div id="screen-status" class="hint" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ================= CANDIDATES ================= -->
+  <section class="panel" id="panel-candidates">
+    <div class="card">
+      <h2>Candidates</h2>
+      <div class="cand-toolbar">
+        <input type="text" id="cand-search" placeholder="Search by name or file..." />
+        <div class="chips" id="cand-filters"></div>
+        <div style="flex:1"></div>
+        <button class="btn ghost" id="cand-export">Export to Excel (CSV)</button>
+        <button class="btn ghost danger" id="cand-clear" title="Remove every candidate in this shortlist">Clear</button>
+      </div>
+      <div class="table-wrap">
+        <table id="cand-table">
+          <thead id="cand-thead"></thead>
+          <tbody id="cand-tbody"></tbody>
+        </table>
+      </div>
+      <div id="detail-panel"></div>
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section class="panel" id="panel-settings">
+    <div class="card">
+      <h2>Your screening policy</h2>
+      <div class="settings-grid">
+        <div>
+          <label for="set-role-title">Role title</label>
+          <input type="text" id="set-role-title" />
+          <label for="set-min-years">Minimum years of experience</label>
+          <input type="number" id="set-min-years" min="0" step="1" />
+
+          <label>Accepted degrees</label>
+          <div id="set-degrees" class="chips"></div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="set-degree-input" placeholder="Degree name, e.g. Chemistry, food specialisation" style="flex:1" />
+            <button class="btn ghost" id="set-degree-add">Add</button>
+          </div>
+
+          <!-- Role specific, so it lives with the role rather than with the general rules. -->
+          <div class="toggle-row" style="margin-top:14px">
+            <span class="lbl">Experience in <span id="set-sector-name">the required sector</span></span>
+            <span class="hint">Ask whether the CV shows work in the sector this role is in.</span>
+            <label class="switch"><input type="checkbox" id="set-sector" /><span class="slider"></span></label>
+          </div>
+
+          <label style="margin-top:16px">Rules</label>
+          <div class="toggle-row">
+            <span class="lbl">Age over <input type="number" id="set-min-age" class="num" min="16" max="70" step="1" /></span>
+            <span class="hint">Require the candidate to be older than this.</span>
+            <label class="switch"><input type="checkbox" id="set-age" /><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="lbl">Military service</span>
+            <span class="hint">Consider military service status.</span>
+            <label class="switch"><input type="checkbox" id="set-military" /><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="lbl">Job stability</span>
+            <span class="hint">More than <input type="number" id="set-max-employers" class="num" min="1" max="20" step="1" /> employers in the last <input type="number" id="set-window-years" class="num" min="1" max="20" step="1" /> years counts against them.</span>
+            <label class="switch"><input type="checkbox" id="set-stability" /><span class="slider"></span></label>
+          </div>
+
+          <label style="margin-top:16px">Hard limits</label>
+          <div class="weight-row"><span class="lbl wide">A degree that does not qualify caps the score at</span><input type="number" id="set-cap-education" class="num" min="0" max="1" step="0.05" /></div>
+          <div class="weight-row"><span class="lbl wide">No experience in the sector caps the score at</span><input type="number" id="set-cap-sector" class="num" min="0" max="1" step="0.05" /></div>
+        </div>
+
+        <div>
+          <label>How much each thing matters</label>
+          <div id="set-weights"></div>
+
+          <label style="margin-top:14px">Decision lines</label>
+          <div class="weight-row"><span class="lbl">Ready to interview at a score of</span><input type="range" id="set-thr-interview" min="0" max="1" step="0.01" /><span class="wv" id="set-thr-interview-v">-</span></div>
+          <div class="weight-row"><span class="lbl">Maybe at a score of</span><input type="range" id="set-thr-maybe" min="0" max="1" step="0.01" /><span class="wv" id="set-thr-maybe-v">-</span></div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:22px">Extra fields</h2>
+      <div class="hint">Extra questions you can switch on. Each one becomes a column in the candidates table.</div>
+      <div id="extra-fields"></div>
+
+      <h2 style="margin-top:22px">Add your own field</h2>
+      <div class="card" style="background:var(--panel2)">
+        <div class="row">
+          <input type="text" id="new-field-label" placeholder="Field name, e.g. Willing to relocate" style="flex:1" />
+          <select id="new-field-kind" style="width:auto">
+            <option value="yesno">Yes/no question</option>
+            <option value="score">Rating question</option>
+            <option value="choice">Options question</option>
+          </select>
+        </div>
+        <label for="new-field-instructions">What the model should judge</label>
+        <textarea id="new-field-instructions" placeholder="Write the instruction in plain words, e.g. Is the candidate willing to relocate for this role?"></textarea>
+        <div id="new-field-body"></div>
+        <div class="row end">
+          <button class="btn ghost" id="new-field-add">Add field</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-footer">
+      <button class="btn" id="save-btn">Save and re-score</button>
+      <button class="btn ghost" id="rescan-btn" style="display:none">Re-scan candidates</button>
+      <span id="save-result"></span>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+/* ------------------------------------------------------------------ state */
+let MODE = "api";            // "api" or "mock"
+let META = null;             // GET /api/meta
+let POLICY = null;           // current editable policy
+let PRESETS = [];            // role presets
+let CANDIDATES = [];         // array of row objects
+let STATS = null;            // candidates stats
+let SELECTED_FILES = [];     // {name, size, file?, text?}
+let FILTER = "all";
+let SEARCH = "";
+let SORT = { key: "score", dir: -1 };
+let DETAIL_ID = null;
+let BATCH_RUNNING = false;
+/** The run in progress or just finished, so the header can report its own speed. */
+let RUN = null;
+
+/* ------------------------------------------------------------------ helpers */
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+function fmtBytes(n) {
+  if (n == null) return "-";
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+function fmtNum(n) {
+  if (n == null || !isFinite(n)) return "-";
+  return n.toLocaleString("en-US");
+}
+function grade(v) { return v >= 0.75 ? "g-green" : v >= 0.4 ? "g-amber" : "g-red"; }
+function kindLabel(k) {
+  if (k === "yesno") return "Yes/no question";
+  if (k === "choice") return "Options question";
+  if (k === "score") return "Rating question";
+  return "Question";
+}
+function normKind(k) { return k === "noul" ? "yesno" : k; }
+function normRow(r) {
+  if (r.composite !== undefined) r.score = r.composite;
+  if (r.rawComposite !== undefined) r.rawScore = r.rawComposite;
+  if (r.dimensions) r.dimensions.forEach((d) => { d.kind = normKind(d.kind); });
+  return r;
+}
+function normField(f) {
+  f.kind = normKind(f.kind);
+  if (f.reviewWhen && f.reviewWhen.noulAbove !== undefined) {
+    f.reviewWhen.yesnoAbove = f.reviewWhen.noulAbove;
+  }
+  return f;
+}
+function normPolicy(p) {
+  if (!p) return p;
+  if (p.extraFields) p.extraFields.forEach(normField);
+  return p;
+}
+function verdictOf(r) {
+  // The verdict is the policy's own answer, derived in code from the score. "Needs review"
+  // is a separate marker, not a fourth verdict: when it replaced the verdict, a folder
+  // where most CVs wanted a quick look showed no verdicts at all.
+  return r.recommendation || "PASS";
+}
+function verdictLabel(v) {
+  return { INTERVIEW: "Ready to interview", MAYBE: "Maybe", PASS: "Pass" }[v] || v;
+}
+/** A name from a filename usually arrives as "papadopoulos nikos"; make it readable. */
+function prettyName(s) {
+  const t = String(s == null ? "" : s).trim();
+  if (!t || t !== t.toLowerCase() || !/^[a-z0-9 .'-]+$/.test(t)) return t;
+  return t.replace(/\b([a-z])/g, (m) => m.toUpperCase());
+}
+
+/* ------------------------------------------------------------------ data loading */
+async function tryFetch(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Inline mock data, used only when the API is not reachable (e.g. opened at file://).
+   Illustrative only: it is not a second copy of the policy, so do not read the rubrics
+   here as the shipped ones. See docs/ui-notes.md. */
+const MOCK_META = {
+  app: { name: "Jev CV Screening", version: "0.2.0" },
+  model: { id: "jev-1.13.0", label: "jev-latest" },
+  hasKey: true,
+  keySource: "mock",
+  policy: {
+    id: "food-industry-qa", roleTitle: "Food industry (QA / R&D / production)", minExperienceYears: 3,
+    acceptedEducation: [
+      { key: "food_chemistry", label: "Chemistry, food specialisation", match: "Χημικός με κατεύθυνση Τροφίμων, Εφαρμοσμένη Χημεία (Τρόφιμα)." },
+      { key: "agronomy", label: "Agriculture / agronomy", match: "Γεωπόνος, Αγρονόμος, Γεωπονική." },
+      { key: "food_technology", label: "Food technology", match: "Τεχνολόγος Τροφίμων, Τεχνολογία Τροφίμων, Επιστήμη Τροφίμων." }
+    ],
+    educationNoMatchKey: "other_not_accepted",
+    weights: { experience_years: 0.2, education: 0.2, food_sector: 0.2, age_over_28: 0.15, military: 0.1, stability: 0.15 },
+    caps: { educationNotAccepted: 0.5, noFoodSector: 0.55 },
+    unknownCredit: 0.47,
+    stability: { maxEmployers: 3, windowYears: 4 },
+    priorityKeywords: ["RnD", "R&D", "Research and Development"],
+    thresholds: { interview: 0.75, maybe: 0.5 },
+    review: { minConfidence: 0.6, borderlineLow: 0.35, borderlineHigh: 0.65 },
+    rejectingGates: ["education"],
+    age: { enabled: true, minAge: 28 },
+    military: { enabled: true, fullCreditIfNotApplicable: true, question: "What is this candidate's military service status?" },
+    sector: { enabled: true, label: "Food sector", question: "Has this candidate ever worked in the food sector?" },
+    extraFields: [
+      { id: "career_progression", label: "Career progression", help: "Whether the candidate has moved steadily upward, or changed jobs often without growing.", kind: "choice", mode: "weight", weight: 0.1, instructions: "How has this candidate's career progressed over time?", criteria: { steady_growth: "Steady growth in responsibility over time.", lateral_moves: "Mostly lateral moves between similar roles.", job_hopping: "Frequent short roles with no clear growth.", unclear: "Not enough information to tell." }, choiceValues: { steady_growth: 1, lateral_moves: 0.7, job_hopping: 0.35, unclear: 0.47 }, enabled: true, reviewWhen: { options: ["unclear"], yesnoAbove: 0.65 } },
+      { id: "technical_depth", label: "Hands-on technical depth", help: "How hands-on the candidate is with the actual technical work of the role.", kind: "score", mode: "weight", weight: 0.1, instructions: "Rate the candidate's hands-on technical depth in their field.", criteria: ["No hands-on technical work.", "Some hands-on work, mostly supervised.", "Comfortable working independently on technical tasks.", "Deep hands-on expertise, leads technical work."], enabled: true, reviewWhen: { options: [], yesnoAbove: 0.65 } }
+    ]
+  },
+  fieldLibrary: [
+    { id: "career_progression", label: "Career progression", help: "Whether the candidate has moved steadily upward, or changed jobs often without growing.", kind: "choice", mode: "weight", defaultWeight: 0.1, enabled: true, instructions: "How has this candidate's career progressed over time?", criteria: { steady_growth: "Steady growth in responsibility over time.", lateral_moves: "Mostly lateral moves between similar roles.", job_hopping: "Frequent short roles with no clear growth.", unclear: "Not enough information to tell." }, choiceValues: { steady_growth: 1, lateral_moves: 0.7, job_hopping: 0.35, unclear: 0.47 } },
+    { id: "technical_depth", label: "Hands-on technical depth", help: "How hands-on the candidate is with the actual technical work of the role.", kind: "score", mode: "weight", defaultWeight: 0.1, enabled: true, instructions: "Rate the candidate's hands-on technical depth in their field.", criteria: ["No hands-on technical work.", "Some hands-on work, mostly supervised.", "Comfortable working independently on technical tasks.", "Deep hands-on expertise, leads technical work."] },
+    { id: "willing_to_relocate", label: "Willing to relocate", help: "Whether the candidate is open to moving for the role.", kind: "yesno", mode: "flag", defaultWeight: 0, enabled: false, instructions: "Is the candidate willing to relocate for this role?", noulCriteria: { true: "The CV states or implies a willingness to relocate.", false: "The CV gives no sign of willingness to relocate." } }
+  ],
+  store: { candidates: 8, screened_at: "2026-09-17T09:12:00.000Z" },
+  limits: { maxUploadMb: 64, defaultConcurrency: 4 }
+};
+
+const MOCK_QUESTIONS = {
+  experience_determinable: { type: "yesno", instructions: "Does the CV state professional work experience with enough detail to measure total years of employment?", criteria: { true: "Dated roles, or explicit statements like '8 years of experience'.", false: "No work history at all, or roles listed with no dates." } },
+  experience_level: { type: "score", instructions: "How many years of professional work experience does this candidate have, compared against the bar of 3 years?", criteria: ["Under 1 year", "1 to under 2 years", "2 to under 3 years, short of the bar", "3 years or more"] },
+  education: { type: "choice", instructions: "Which best describes the candidate's highest relevant degree? The role requires one of the accepted categories.", criteria: { food_chemistry: "Chemistry with a food specialisation.", agronomy: "Agriculture / agronomy.", food_technology: "Food technology.", other_not_accepted: "No degree from the accepted categories." } },
+  food_sector_present: { type: "yesno", instructions: "Has this candidate ever worked for an organisation that operates in the food sector?", criteria: { true: "At least one employer or role is clearly in the food sector.", false: "Every employer and role is outside the food sector." } },
+  food_sector_depth: { type: "score", instructions: "How much of this candidate's career has been spent in the food sector, and how central was their role to it?", criteria: ["No food-sector exposure at all", "Adjacent or indirect exposure", "Direct food-sector role", "Senior or specialist food-sector role"] },
+  age_evidence: { type: "choice", instructions: "The role requires the candidate to be over 28 years of age. Which kind of age evidence does the CV contain?", criteria: { over_28_stated: "A birth date or explicit age placing the candidate above 28.", under_28_stated: "A birth date or explicit age placing the candidate at or below 28.", inferable_indirectly: "No direct statement, but a rough age range is plausible.", not_stated: "Nothing in the CV supports any estimate of age." } },
+  military_status: { type: "choice", instructions: "What is this candidate's military service status?", criteria: { completed: "Service is stated as completed.", pending_or_not_completed: "Service is not yet completed.", exempted: "An exemption or waiver is stated.", not_applicable_female: "The candidate is female, or service does not apply.", not_stated: "The CV gives no indication." } },
+  stability_red_flag: { type: "yesno", instructions: "Has this candidate worked for more than 3 different employers during the last 4 years?", criteria: { true: "More than 3 distinct employers inside the window.", false: "3 or fewer distinct employers inside the window." } },
+  career_progression: { type: "choice", instructions: "How has this candidate's career progressed over time?", criteria: { steady_growth: "Steady growth in responsibility over time.", lateral_moves: "Mostly lateral moves between similar roles.", job_hopping: "Frequent short roles with no clear growth.", unclear: "Not enough information to tell." } },
+  technical_depth: { type: "score", instructions: "Rate the candidate's hands-on technical depth in their field.", criteria: ["No hands-on technical work.", "Some hands-on work, mostly supervised.", "Comfortable working independently on technical tasks.", "Deep hands-on expertise, leads technical work."] }
+};
+
+const MOCK_CANDIDATES = [
+  { id: 41, name: "Nikolaos Papadopoulos", email: "n.papadopoulos@example.gr", sourceFile: "75a113e9b959_Nikolaos_Papadopoulos_CV.pdf", createdAt: "2026-09-17T09:12:00.000Z", score: 0.931, rawScore: 0.931, capped: false, appliedCaps: [], recommendation: "INTERVIEW", needsReview: false, reviewReasons: [], gates: { educationAccepted: true, foodSectorPresent: true, stabilityRedFlag: false }, flags: { priority: true, priorityP: 0.99 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 1, contribution: 0.2, basis: "level 3: 3 years or more", unknown: false, confidence: 0.94, kind: "score", answer: "3" },
+    { id: "education", label: "Education category", weight: 0.2, value: 1, contribution: 0.2, basis: "accepted category: food_chemistry", unknown: false, confidence: 0.97, kind: "choice", answer: "food_chemistry" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 1, contribution: 0.2, basis: "level 3: Senior or specialist food-sector role", unknown: false, confidence: 0.95, kind: "score", answer: "3" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 1, contribution: 0.15, basis: "direct evidence places candidate over 28", unknown: false, confidence: 0.9, kind: "choice", answer: "over_28_stated" },
+    { id: "military", label: "Military service", weight: 0.1, value: 1, contribution: 0.1, basis: "service completed", unknown: false, confidence: 0.88, kind: "choice", answer: "completed" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 1, contribution: 0.15, basis: "no red flag, at or under the 3 employer limit (p(flag)=0.02)", unknown: false, confidence: 0.96, kind: "yesno", answer: "0.02" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 1, contribution: 0.1, basis: "steady_growth", unknown: false, confidence: 0.9, kind: "choice", answer: "steady_growth" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 1, contribution: 0.1, basis: "level 3: Deep hands-on expertise, leads technical work", unknown: false, confidence: 0.92, kind: "score", answer: "3" }
+  ], fields: { career_progression: "steady_growth", technical_depth: "3" }, elapsedMs: 2840, tokens: 3597, model: "jev-1.13.0", stale: false },
+  { id: 42, name: "Maria Georgiou", email: "m.georgiou@example.gr", sourceFile: "Maria_Georgiou_CV.pdf", createdAt: "2026-09-17T09:13:00.000Z", score: 0.82, rawScore: 0.82, capped: false, appliedCaps: [], recommendation: "INTERVIEW", needsReview: false, reviewReasons: [], gates: { educationAccepted: true, foodSectorPresent: true, stabilityRedFlag: false }, flags: { priority: false, priorityP: 0.1 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 0.67, contribution: 0.134, basis: "level 2: 2 to under 3 years, short of the bar", unknown: false, confidence: 0.9, kind: "score", answer: "2" },
+    { id: "education", label: "Education category", weight: 0.2, value: 1, contribution: 0.2, basis: "accepted category: food_technology", unknown: false, confidence: 0.96, kind: "choice", answer: "food_technology" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 0.67, contribution: 0.134, basis: "level 2: Direct food-sector role", unknown: false, confidence: 0.91, kind: "score", answer: "2" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 1, contribution: 0.15, basis: "direct evidence places candidate over 28", unknown: false, confidence: 0.89, kind: "choice", answer: "over_28_stated" },
+    { id: "military", label: "Military service", weight: 0.1, value: 1, contribution: 0.1, basis: "not applicable, full credit per policy", unknown: false, confidence: 0.95, kind: "choice", answer: "not_applicable_female" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 1, contribution: 0.15, basis: "no red flag, at or under the 3 employer limit (p(flag)=0.05)", unknown: false, confidence: 0.94, kind: "yesno", answer: "0.05" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 0.7, contribution: 0.07, basis: "lateral_moves", unknown: false, confidence: 0.85, kind: "choice", answer: "lateral_moves" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 0.67, contribution: 0.067, basis: "level 2: Comfortable working independently on technical tasks", unknown: false, confidence: 0.88, kind: "score", answer: "2" }
+  ], fields: { career_progression: "lateral_moves", technical_depth: "2" }, elapsedMs: 3010, tokens: 3720, model: "jev-1.13.0", stale: false },
+  { id: 43, name: "Nikos Antoniou", email: "", sourceFile: "Nikos_Antoniou_CV.pdf", createdAt: "2026-09-17T09:14:00.000Z", score: 0.61, rawScore: 0.61, capped: false, appliedCaps: [], recommendation: "MAYBE", needsReview: true, reviewReasons: ["Job stability red flag is borderline (p=0.55)", "Food-sector presence is uncertain (p=0.58), so the no-food-sector cap was not applied"], gates: { educationAccepted: true, foodSectorPresent: true, stabilityRedFlag: true }, flags: { priority: false, priorityP: 0.2 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 0.67, contribution: 0.134, basis: "level 2: 2 to under 3 years, short of the bar", unknown: false, confidence: 0.88, kind: "score", answer: "2" },
+    { id: "education", label: "Education category", weight: 0.2, value: 1, contribution: 0.2, basis: "accepted category: agronomy", unknown: false, confidence: 0.93, kind: "choice", answer: "agronomy" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 0.33, contribution: 0.066, basis: "level 1: Adjacent or indirect exposure", unknown: false, confidence: 0.7, kind: "score", answer: "1" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 0.47, contribution: 0.0705, basis: "age only inferable indirectly, partial credit", unknown: true, confidence: 0.6, kind: "choice", answer: "inferable_indirectly" },
+    { id: "military", label: "Military service", weight: 0.1, value: 0.5, contribution: 0.05, basis: "status not stated, partial credit", unknown: true, confidence: 0.55, kind: "choice", answer: "not_stated" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 0.45, contribution: 0.0675, basis: "red flag uncertain (p=0.55), scored 0.45", unknown: false, confidence: 0.6, kind: "yesno", answer: "0.55" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 0.35, contribution: 0.035, basis: "job_hopping", unknown: false, confidence: 0.8, kind: "choice", answer: "job_hopping" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 0.33, contribution: 0.033, basis: "level 1: Some hands-on work, mostly supervised", unknown: false, confidence: 0.82, kind: "score", answer: "1" }
+  ], fields: { career_progression: "job_hopping", technical_depth: "1" }, elapsedMs: 2650, tokens: 3410, model: "jev-1.13.0", stale: false },
+  { id: 44, name: "Eleni Koutsou", email: "e.koutsou@example.gr", sourceFile: "Eleni_Koutsou_CV.pdf", createdAt: "2026-09-17T09:15:00.000Z", score: 0.48, rawScore: 0.48, capped: false, appliedCaps: [], recommendation: "PASS", needsReview: false, reviewReasons: [], gates: { educationAccepted: false, foodSectorPresent: true, stabilityRedFlag: false }, flags: { priority: false, priorityP: 0.05 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 0.67, contribution: 0.134, basis: "level 2: 2 to under 3 years, short of the bar", unknown: false, confidence: 0.9, kind: "score", answer: "2" },
+    { id: "education", label: "Education category", weight: 0.2, value: 0.1, contribution: 0.02, basis: "no accepted category (other_not_accepted, p(no match)=0.9)", unknown: false, confidence: 0.95, kind: "choice", answer: "other_not_accepted" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 0.33, contribution: 0.066, basis: "level 1: Adjacent or indirect exposure", unknown: false, confidence: 0.85, kind: "score", answer: "1" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 1, contribution: 0.15, basis: "direct evidence places candidate over 28", unknown: false, confidence: 0.9, kind: "choice", answer: "over_28_stated" },
+    { id: "military", label: "Military service", weight: 0.1, value: 1, contribution: 0.1, basis: "service completed", unknown: false, confidence: 0.87, kind: "choice", answer: "completed" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 1, contribution: 0.15, basis: "no red flag, at or under the 3 employer limit (p(flag)=0.03)", unknown: false, confidence: 0.95, kind: "yesno", answer: "0.03" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 0.7, contribution: 0.07, basis: "lateral_moves", unknown: false, confidence: 0.84, kind: "choice", answer: "lateral_moves" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 0.33, contribution: 0.033, basis: "level 1: Some hands-on work, mostly supervised", unknown: false, confidence: 0.8, kind: "score", answer: "1" }
+  ], fields: { career_progression: "lateral_moves", technical_depth: "1" }, elapsedMs: 2990, tokens: 3650, model: "jev-1.13.0", stale: false },
+  { id: 45, name: "Dimitris Antoniou", email: "", sourceFile: "Dimitris_Antoniou_CV.pdf", createdAt: "2026-09-17T09:16:00.000Z", score: 0.72, rawScore: 0.72, capped: false, appliedCaps: [], recommendation: "MAYBE", needsReview: false, reviewReasons: [], gates: { educationAccepted: true, foodSectorPresent: true, stabilityRedFlag: false }, flags: { priority: true, priorityP: 0.9 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 1, contribution: 0.2, basis: "level 3: 3 years or more", unknown: false, confidence: 0.93, kind: "score", answer: "3" },
+    { id: "education", label: "Education category", weight: 0.2, value: 1, contribution: 0.2, basis: "accepted category: food_chemistry", unknown: false, confidence: 0.96, kind: "choice", answer: "food_chemistry" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 0.33, contribution: 0.066, basis: "level 1: Adjacent or indirect exposure", unknown: false, confidence: 0.8, kind: "score", answer: "1" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 0.47, contribution: 0.0705, basis: "age not stated, partial credit", unknown: true, confidence: 0.5, kind: "choice", answer: "not_stated" },
+    { id: "military", label: "Military service", weight: 0.1, value: 1, contribution: 0.1, basis: "exempted or waived", unknown: false, confidence: 0.9, kind: "choice", answer: "exempted" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 0.5, contribution: 0.075, basis: "red flag uncertain (p=0.5), scored 0.5", unknown: false, confidence: 0.6, kind: "yesno", answer: "0.5" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 0.7, contribution: 0.07, basis: "lateral_moves", unknown: false, confidence: 0.83, kind: "choice", answer: "lateral_moves" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 0.67, contribution: 0.067, basis: "level 2: Comfortable working independently on technical tasks", unknown: false, confidence: 0.87, kind: "score", answer: "2" }
+  ], fields: { career_progression: "lateral_moves", technical_depth: "2" }, elapsedMs: 3120, tokens: 3880, model: "jev-1.13.0", stale: false },
+  { id: 46, name: "Sofia Nikolaou", email: "s.nikolaou@example.gr", sourceFile: "Sofia_Nikolaou_CV.pdf", createdAt: "2026-09-17T09:17:00.000Z", score: 0.88, rawScore: 0.88, capped: false, appliedCaps: [], recommendation: "INTERVIEW", needsReview: false, reviewReasons: [], gates: { educationAccepted: true, foodSectorPresent: true, stabilityRedFlag: false }, flags: { priority: true, priorityP: 0.95 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 1, contribution: 0.2, basis: "level 3: 3 years or more", unknown: false, confidence: 0.95, kind: "score", answer: "3" },
+    { id: "education", label: "Education category", weight: 0.2, value: 1, contribution: 0.2, basis: "accepted category: food_technology", unknown: false, confidence: 0.97, kind: "choice", answer: "food_technology" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 0.67, contribution: 0.134, basis: "level 2: Direct food-sector role", unknown: false, confidence: 0.9, kind: "score", answer: "2" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 1, contribution: 0.15, basis: "direct evidence places candidate over 28", unknown: false, confidence: 0.92, kind: "choice", answer: "over_28_stated" },
+    { id: "military", label: "Military service", weight: 0.1, value: 1, contribution: 0.1, basis: "not applicable, full credit per policy", unknown: false, confidence: 0.96, kind: "choice", answer: "not_applicable_female" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 1, contribution: 0.15, basis: "no red flag, at or under the 3 employer limit (p(flag)=0.01)", unknown: false, confidence: 0.97, kind: "yesno", answer: "0.01" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 1, contribution: 0.1, basis: "steady_growth", unknown: false, confidence: 0.91, kind: "choice", answer: "steady_growth" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 0.67, contribution: 0.067, basis: "level 2: Comfortable working independently on technical tasks", unknown: false, confidence: 0.89, kind: "score", answer: "2" }
+  ], fields: { career_progression: "steady_growth", technical_depth: "2" }, elapsedMs: 2760, tokens: 3500, model: "jev-1.13.0", stale: false },
+  { id: 47, name: "Κωνσταντίνος Λάμπρου", email: "k.lamprou@example.gr", sourceFile: "Konstantinos_Lamprou_CV.pdf", createdAt: "2026-09-17T09:18:00.000Z", score: 0.55, rawScore: 0.55, capped: false, appliedCaps: [], recommendation: "MAYBE", needsReview: true, reviewReasons: ["Experience answer confidence is low (0.55)", "Age evidence answer missing from the response"], gates: { educationAccepted: true, foodSectorPresent: false, stabilityRedFlag: false }, flags: { priority: false, priorityP: 0.15 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 0.47, contribution: 0.094, basis: "experience not determinable from the CV (p=0.4), partial credit", unknown: true, confidence: 0.55, kind: "score", answer: "unknown" },
+    { id: "education", label: "Education category", weight: 0.2, value: 1, contribution: 0.2, basis: "accepted category: food_chemistry", unknown: false, confidence: 0.94, kind: "choice", answer: "food_chemistry" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 0, contribution: 0, basis: "level 0: No food-sector exposure at all", unknown: false, confidence: 0.9, kind: "score", answer: "0" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 0.47, contribution: 0.0705, basis: "answer missing from response", unknown: true, confidence: null, kind: "choice", answer: "missing" },
+    { id: "military", label: "Military service", weight: 0.1, value: 0.5, contribution: 0.05, basis: "status not stated, partial credit", unknown: true, confidence: 0.5, kind: "choice", answer: "not_stated" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 1, contribution: 0.15, basis: "no red flag, at or under the 3 employer limit (p(flag)=0.04)", unknown: false, confidence: 0.95, kind: "yesno", answer: "0.04" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 0.47, contribution: 0.047, basis: "unclear", unknown: false, confidence: 0.6, kind: "choice", answer: "unclear" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 0.33, contribution: 0.033, basis: "level 1: Some hands-on work, mostly supervised", unknown: false, confidence: 0.8, kind: "score", answer: "1" }
+  ], fields: { career_progression: "unclear", technical_depth: "1" }, elapsedMs: 2880, tokens: 3600, model: "jev-1.13.0", stale: true },
+  { id: 48, name: "Αναστασία Παπαϊωάννου", email: "", sourceFile: "Anastasia_Papaioannou_CV.pdf", createdAt: "2026-09-17T09:19:00.000Z", score: 0.4, rawScore: 0.4, capped: false, appliedCaps: [], recommendation: "PASS", needsReview: true, reviewReasons: ["disqualifying gate failed: education", "model flagged weak or contradictory evidence (p=0.7)"], gates: { educationAccepted: false, foodSectorPresent: true, stabilityRedFlag: false }, flags: { priority: false, priorityP: 0.08 }, dimensions: [
+    { id: "experience_years", label: "Experience", weight: 0.2, value: 0.67, contribution: 0.134, basis: "level 2: 2 to under 3 years, short of the bar", unknown: false, confidence: 0.88, kind: "score", answer: "2" },
+    { id: "education", label: "Education category", weight: 0.2, value: 0.1, contribution: 0.02, basis: "no accepted category (other_not_accepted, p(no match)=0.9)", unknown: false, confidence: 0.95, kind: "choice", answer: "other_not_accepted" },
+    { id: "food_sector", label: "Food-sector depth", weight: 0.2, value: 0.33, contribution: 0.066, basis: "level 1: Adjacent or indirect exposure", unknown: false, confidence: 0.85, kind: "score", answer: "1" },
+    { id: "age_over_28", label: "Age over 28", weight: 0.15, value: 0.47, contribution: 0.0705, basis: "age not stated, partial credit", unknown: true, confidence: 0.5, kind: "choice", answer: "not_stated" },
+    { id: "military", label: "Military service", weight: 0.1, value: 1, contribution: 0.1, basis: "service completed", unknown: false, confidence: 0.9, kind: "choice", answer: "completed" },
+    { id: "stability", label: "Job stability", weight: 0.15, value: 1, contribution: 0.15, basis: "no red flag, at or under the 3 employer limit (p(flag)=0.02)", unknown: false, confidence: 0.96, kind: "yesno", answer: "0.02" },
+    { id: "career_progression", label: "Career progression", weight: 0.1, value: 0.7, contribution: 0.07, basis: "lateral_moves", unknown: false, confidence: 0.84, kind: "choice", answer: "lateral_moves" },
+    { id: "technical_depth", label: "Hands-on technical depth", weight: 0.1, value: 0.33, contribution: 0.033, basis: "level 1: Some hands-on work, mostly supervised", unknown: false, confidence: 0.8, kind: "score", answer: "1" }
+  ], fields: { career_progression: "lateral_moves", technical_depth: "1" }, elapsedMs: 3050, tokens: 3750, model: "jev-1.13.0", stale: false }
+];
+
+const MOCK_STATS = { candidates: 8, interview: 3, maybe: 3, pass: 2, needsReview: 3, avgMs: 2912, avgTokens: 3638, totalTokens: 29100, fields: [] };
+
+const MOCK_PRESETS = [
+  { id: "food-industry-qa", roleTitle: "Food industry (QA / R&D / production)", minExperienceYears: 3, acceptedEducation: [ { key: "food_chemistry", label: "Chemistry, food specialisation", match: "Χημικός με κατεύθυνση Τροφίμων." }, { key: "agronomy", label: "Agriculture / agronomy", match: "Γεωπόνος." }, { key: "food_technology", label: "Food technology", match: "Τεχνολόγος Τροφίμων." } ], educationNoMatchKey: "other_not_accepted", weights: { experience_years: 0.2, education: 0.2, food_sector: 0.2, age_over_28: 0.15, military: 0.1, stability: 0.15 }, caps: { educationNotAccepted: 0.5, noFoodSector: 0.55 }, unknownCredit: 0.47, stability: { maxEmployers: 3, windowYears: 4 }, priorityKeywords: ["RnD", "R&D"], thresholds: { interview: 0.75, maybe: 0.5 }, review: { minConfidence: 0.6, borderlineLow: 0.35, borderlineHigh: 0.65 }, rejectingGates: ["education"], age: { enabled: true, minAge: 28 }, military: { enabled: true, fullCreditIfNotApplicable: true, question: "" }, sector: { enabled: true, label: "Food sector", question: "" }, extraFields: [] },
+  { id: "office-admin", roleTitle: "Office administrator", minExperienceYears: 2, acceptedEducation: [ { key: "business_admin", label: "Business administration", match: "Πτυχίο Διοίκησης Επιχειρήσεων." }, { key: "secretarial", label: "Secretarial studies", match: "Γραμματειακή υποστήριξη." } ], educationNoMatchKey: "other_not_accepted", weights: { experience_years: 0.3, education: 0.15, food_sector: 0, age_over_28: 0, military: 0, stability: 0.2 }, caps: { educationNotAccepted: 0.5, noFoodSector: 0.55 }, unknownCredit: 0.47, stability: { maxEmployers: 3, windowYears: 4 }, priorityKeywords: [], thresholds: { interview: 0.7, maybe: 0.45 }, review: { minConfidence: 0.6, borderlineLow: 0.35, borderlineHigh: 0.65 }, rejectingGates: [], age: { enabled: false, minAge: 28 }, military: { enabled: false, fullCreditIfNotApplicable: true, question: "" }, sector: { enabled: false, label: "the required sector", question: "" }, extraFields: [] }
+];
+
+/* Mock batch stream: array of SSE event objects, replayed with a small delay. */
+const MOCK_BATCH = [
+  { type: "job", jobId: "b_mock1", total: 8, concurrency: 4, startedAt: "2026-09-17T09:20:00.000Z" },
+  { type: "progress", done: 1, failed: 0, total: 8, ms: 2840, elapsedMs: [2840], tokens: 3597, current: "Nikolaos_Papadopoulos_CV.pdf", row: MOCK_CANDIDATES[0] },
+  { type: "progress", done: 2, failed: 0, total: 8, ms: 5850, elapsedMs: [2840, 3010], tokens: 7317, current: "Maria_Georgiou_CV.pdf", row: MOCK_CANDIDATES[1] },
+  { type: "progress", done: 3, failed: 0, total: 8, ms: 8500, elapsedMs: [2840, 3010, 2650], tokens: 10727, current: "Nikos_Antoniou_CV.pdf", row: MOCK_CANDIDATES[2] },
+  { type: "progress", done: 4, failed: 0, total: 8, ms: 11550, elapsedMs: [2840, 3010, 2650, 3050], tokens: 14477, current: "Eleni_Koutsou_CV.pdf", row: MOCK_CANDIDATES[3] },
+  { type: "progress", done: 5, failed: 0, total: 8, ms: 14670, elapsedMs: [2840, 3010, 2650, 3050, 3120], tokens: 18357, current: "Dimitris_Antoniou_CV.pdf", row: MOCK_CANDIDATES[4] },
+  { type: "progress", done: 6, failed: 0, total: 8, ms: 17430, elapsedMs: [2840, 3010, 2650, 3050, 3120, 2760], tokens: 21857, current: "Sofia_Nikolaou_CV.pdf", row: MOCK_CANDIDATES[5] },
+  { type: "progress", done: 7, failed: 0, total: 8, ms: 20310, elapsedMs: [2840, 3010, 2650, 3050, 3120, 2760, 2880], tokens: 25457, current: "Konstantinos_Lamprou_CV.pdf", row: MOCK_CANDIDATES[6] },
+  { type: "progress", done: 8, failed: 0, total: 8, ms: 23360, elapsedMs: [2840, 3010, 2650, 3050, 3120, 2760, 2880, 3050], tokens: 29207, current: "Anastasia_Papaioannou_CV.pdf", row: MOCK_CANDIDATES[7] },
+  { type: "done", done: 8, failed: 0, total: 8, wallMs: 23360, tokens: 29207, stats: MOCK_STATS, errors: [] }
+];
+
+async function loadData() {
+  const meta = await tryFetch("/api/meta");
+  if (meta) {
+    MODE = "api";
+    META = meta;
+    POLICY = normPolicy(JSON.parse(JSON.stringify(meta.policy)));
+    const presets = await tryFetch("/api/presets");
+    PRESETS = Array.isArray(presets) ? presets : (presets && presets.presets) || [];
+    const cand = await tryFetch("/api/candidates");
+    if (cand) {
+      CANDIDATES = (cand.rows || []).map(normRow);
+      STATS = cand.stats || null;
+    }
+  } else {
+    MODE = "mock";
+    META = MOCK_META;
+    POLICY = normPolicy(JSON.parse(JSON.stringify(MOCK_META.policy)));
+    PRESETS = MOCK_PRESETS;
+    CANDIDATES = MOCK_CANDIDATES.map(normRow);
+    STATS = MOCK_STATS;
+  }
+  // Offline mode shows itself on the role line rather than in its own badge, and refresh the
+  // header from the demo data (loadData's caller also calls updateStats, once).
+  if (MODE === "mock") updateStats();
+}
+
+/* ------------------------------------------------------------------ header */
+function fmtDuration(ms) {
+  const seconds = ms / 1000;
+  if (seconds < 60) return seconds.toFixed(seconds < 10 ? 1 : 0) + " s";
+  const m = Math.floor(seconds / 60);
+  return m + " m " + Math.round(seconds - m * 60) + " s";
+}
+
+function updateStats() {
+  // Counted from the rows on screen, so the header keeps moving while a batch streams in.
+  const interview = CANDIDATES.filter((r) => verdictOf(r) === "INTERVIEW").length;
+  const maybe = CANDIDATES.filter((r) => verdictOf(r) === "MAYBE").length;
+  const pass = CANDIDATES.filter((r) => verdictOf(r) === "PASS").length;
+  const review = CANDIDATES.filter((r) => r.needsReview).length;
+  $("stat-interview").textContent = interview;
+  $("stat-maybe").textContent = maybe;
+  $("stat-pass").textContent = pass;
+  $("stat-review").textContent = review;
+  $("stat-total").textContent = CANDIDATES.length;
+
+  // The speed, token and cost figures describe ONE run when a run is happening or has just
+  // finished, so a user can see how quick their own run was. Otherwise they describe
+  // everything in the store. The scope label says which, because a number that silently
+  // changes meaning is worse than no number.
+  const wall = RUN ? (RUN.active ? Date.now() - RUN.startedAt : RUN.wallMs) : 0;
+  const scope = RUN ? (RUN.active ? "this run" : "last run") : "all runs";
+  $("stats-scope").textContent = scope;
+  $("stat-runwall").textContent = RUN && RUN.done > 0 ? fmtDuration(wall) : "-";
+
+  let avg, cpm, tokens, cost;
+  if (RUN && RUN.done > 0 && wall > 0) {
+    avg = Math.round(wall / RUN.done);
+    cpm = Math.round((RUN.done / (wall / 1000)) * 60);
+    tokens = RUN.tokens;
+    cost = RUN.costUsd;
+  } else {
+    avg = STATS && STATS.avgMs != null ? STATS.avgMs : 0;
+    cpm = avg ? Math.round(60000 / avg) : 0;
+    tokens = STATS && STATS.totalTokens != null ? STATS.totalTokens : 0;
+    cost = STATS && STATS.costUsd != null ? STATS.costUsd : 0;
+  }
+  $("stat-avgms").textContent = avg ? fmtNum(avg) : "-";
+  $("stat-cpm").textContent = cpm ? fmtNum(cpm) : "-";
+  $("stat-tokens").textContent = fmtNum(tokens);
+  // Input tokens are billed and output is free, so this is the whole bill for the run.
+  $("stat-cost").textContent = cost > 0 ? (cost < 0.01 ? "$" + cost.toFixed(5) : "$" + cost.toFixed(4)) : "-";
+  $("stat-model").textContent = (META && META.model && META.model.id) || "-";
+  $("role-line").textContent =
+    (POLICY ? POLICY.roleTitle + " · min " + POLICY.minExperienceYears + "y experience" : "") +
+    (MODE === "mock" ? " · offline demo data" : "");
+}
+
+/* ------------------------------------------------------------------ tabs */
+document.querySelectorAll(".tab").forEach((t) => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach((x) => x.classList.remove("active"));
+    t.classList.add("active");
+    $("panel-" + t.dataset.tab).classList.add("active");
+    if (t.dataset.tab === "candidates") renderCandidates();
+  });
+});
+
+/* ------------------------------------------------------------------ screen tab */
+function refreshFileSummary() {
+  const n = SELECTED_FILES.length;
+  const total = SELECTED_FILES.reduce((s, f) => s + (f.size || 0), 0);
+  const paste = $("paste-text").value.trim();
+  const parts = [];
+  if (n) parts.push(n + " file" + (n === 1 ? "" : "s") + " (" + fmtBytes(total) + ")");
+  if (paste) parts.push("1 pasted CV (" + paste.length + " chars)");
+  $("file-summary").innerHTML = parts.length
+    ? "Ready to screen: <b>" + esc(parts.join(" and ")) + "</b>."
+    : "No files chosen yet.";
+}
+
+function addFiles(fileList) {
+  for (const f of fileList) {
+    if (f.size > (META.limits.maxUploadMb || 64) * 1048576) continue;
+    SELECTED_FILES.push({ name: f.name, size: f.size, file: f });
+  }
+  refreshFileSummary();
+}
+
+function walkEntry(entry, out) {
+  if (entry.isFile) {
+    entry.file((f) => {
+      if (f.size <= (META.limits.maxUploadMb || 64) * 1048576) out.push({ name: f.name, size: f.size, file: f });
+    });
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    const readBatch = () => {
+      reader.readEntries((entries) => {
+        if (!entries.length) return;
+        entries.forEach((e) => walkEntry(e, out));
+        readBatch();
+      });
+    };
+    readBatch();
+  }
+}
+
+$("dropzone").addEventListener("click", () => $("file-input").click());
+$("choose-files").addEventListener("click", (e) => { e.stopPropagation(); $("file-input").click(); });
+$("choose-folder").addEventListener("click", (e) => { e.stopPropagation(); $("folder-input").click(); });
+$("file-input").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
+$("folder-input").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
+$("paste-text").addEventListener("input", refreshFileSummary);
+
+["dragover", "dragenter"].forEach((ev) => $("dropzone").addEventListener(ev, (e) => { e.preventDefault(); $("dropzone").classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => $("dropzone").addEventListener(ev, (e) => { e.preventDefault(); $("dropzone").classList.remove("over"); }));
+$("dropzone").addEventListener("drop", (e) => {
+  e.preventDefault();
+  const items = e.dataTransfer && e.dataTransfer.items;
+  if (items && items.length) {
+    const out = [];
+    let pending = 0;
+    for (const item of items) {
+      const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
+      if (entry) { pending++; walkEntry(entry, out); }
+    }
+    if (pending) {
+      setTimeout(() => { addFiles(out); }, 300);
+      return;
+    }
+  }
+  if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+});
+
+function populatePresets() {
+  const sel = $("preset-select");
+  sel.innerHTML = "";
+  if (!PRESETS.length) {
+    const o = document.createElement("option");
+    o.value = ""; o.textContent = "Current role";
+    sel.appendChild(o);
+    return;
+  }
+  const cur = document.createElement("option");
+  cur.value = ""; cur.textContent = "Current role";
+  sel.appendChild(cur);
+  PRESETS.forEach((p) => {
+    const o = document.createElement("option");
+    o.value = p.id; o.textContent = p.roleTitle;
+    sel.appendChild(o);
+  });
+}
+$("preset-select").addEventListener("change", (e) => {
+  const p = PRESETS.find((x) => x.id === e.target.value);
+  if (p) { POLICY = normPolicy(JSON.parse(JSON.stringify(p))); renderSettings(); updateStats(); }
+});
+
+function readFileAsBase64(file) {
+  return new Promise((ok, bad) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(String(fr.result).split(",")[1] || "");
+    fr.onerror = () => bad(fr.error);
+    fr.readAsDataURL(file);
+  });
+}
+function readFileAsText(file) {
+  return new Promise((ok, bad) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(String(fr.result));
+    fr.onerror = () => bad(fr.error);
+    fr.readAsText(file);
+  });
+}
+
+function addBatchRow(row) {
+  const v = verdictOf(row);
+  const el = document.createElement("div");
+  el.className = "batch-row";
+  el.dataset.id = row.id;
+  el.innerHTML =
+    '<span class="nm">' + esc(prettyName(row.name) || row.sourceFile) + "</span>" +
+    '<span class="sc">' + (row.score != null ? row.score.toFixed(3) : "-") + "</span>" +
+    '<span class="badge ' + v + '">' + esc(verdictLabel(v)) + "</span>" +
+    (row.needsReview ? '<span class="marker">review</span>' : "") +
+    (row.stale ? '<span class="stale">stale</span>' : "");
+  el.addEventListener("click", () => openDetail(row.id));
+  $("batch-results").prepend(el);
+}
+
+function updateBatchProgress(ev) {
+  const done = ev.done || 0;
+  const total = ev.total || 0;
+  const pct = total ? Math.min(100, (done / total) * 100) : 0;
+  $("batch-bar").style.width = pct + "%";
+  $("batch-count").textContent = done + "/" + total;
+  // ms is wall time for the whole run, so ms/done is the average wall time per CV and
+  // 60000/avg is what the user actually experienced: CVs per minute end to end.
+  const ms = ev.ms || 0;
+  const avg = done ? ms / done : 0;
+  $("batch-avgms").textContent = avg ? Math.round(avg).toLocaleString() : "-";
+  $("batch-cpm").textContent = avg ? Math.round(60000 / avg).toLocaleString() : "-";
+  const left = total > done && avg ? Math.round(((total - done) * avg) / 1000) : 0;
+  $("batch-eta").textContent = left ? left + "s" : "-";
+  $("batch-tokens").textContent = (ev.tokens || 0).toLocaleString();
+
+  if (RUN) {
+    RUN.done = done;
+    RUN.failed = ev.failed || 0;
+    RUN.total = total || RUN.total;
+    RUN.tokens = ev.tokens || 0;
+    if (ms) RUN.wallMs = ms;
+    if (ev.row) RUN.costUsd += ev.row.costUsd || 0;
+    updateStats();
+  }
+  if (ev.row) addBatchRow(ev.row);
+}
+
+async function streamBatch(jobId) {
+  const res = await fetch("/api/batch/stream?jobId=" + encodeURIComponent(jobId));
+  if (!res.ok || !res.body) throw new Error("stream failed");
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, idx).trim();
+      buf = buf.slice(idx + 1);
+      if (line.startsWith("data:")) {
+        const payload = line.slice(5).trim();
+        if (!payload) continue;
+        let ev;
+        try { ev = JSON.parse(payload); } catch (e) { continue; }
+        handleBatchEvent(ev);
+      }
+    }
+  }
+}
+
+function handleBatchEvent(ev) {
+  if (ev.type === "job") {
+    $("batch-progress").style.display = "block";
+    $("batch-results").innerHTML = "";
+    $("batch-count").textContent = "0/" + (ev.total || 0);
+    RUN = { startedAt: Date.now(), total: ev.total || 0, done: 0, failed: 0, tokens: 0, costUsd: 0, wallMs: 0, active: true };
+    updateStats();
+  } else if (ev.type === "progress") {
+    updateBatchProgress(ev);
+  } else if (ev.type === "done") {
+    if (RUN) {
+      RUN.active = false;
+      RUN.wallMs = ev.wallMs || RUN.wallMs;
+      RUN.done = ev.done || RUN.done;
+    }
+    updateBatchProgress({ done: ev.done, total: ev.total, ms: ev.wallMs, tokens: ev.tokens, failed: ev.failed });
+    if (ev.stats) { STATS = ev.stats; }
+    if (ev.errors && ev.errors.length) {
+      $("screen-status").innerHTML = '<div class="note err">' + ev.errors.map((x) => esc(x.file + ": " + x.error)).join("<br>") + "</div>";
+    }
+    BATCH_RUNNING = false;
+    $("screen-btn").disabled = false;
+    $("screen-btn").textContent = "Screen with Jev";
+    refreshCandidatesFromBatch();
+  } else if (ev.type === "error") {
+    $("screen-status").innerHTML = '<div class="note err">' + esc(ev.error || "Something went wrong.") + "</div>";
+    BATCH_RUNNING = false;
+    $("screen-btn").disabled = false;
+    $("screen-btn").textContent = "Screen with Jev";
+  }
+}
+
+function refreshCandidatesFromBatch() {
+  // In mock mode the batch rows are already in CANDIDATES; in api mode the server
+  // store is authoritative, so we re-fetch the list.
+  if (MODE === "api") {
+    tryFetch("/api/candidates").then((cand) => {
+      if (cand) { CANDIDATES = (cand.rows || []).map(normRow); STATS = cand.stats || null; updateStats(); }
+    });
+  } else {
+    updateStats();
+  }
+}
+
+/**
+ * A new run replaces the shortlist. Mixing yesterday's food-industry candidates into a frontend
+ * screening produces a table that looks fine and means nothing, so the app starts fresh and the
+ * server drops the old rows in the same request that begins the new run.
+ */
+function startFreshShortlist(cleared) {
+  if (!cleared) return;
+  CANDIDATES = [];
+  STATS = null;
+  DETAIL_ID = null;
+  RUN = null;
+  $("detail-panel").innerHTML = '<div class="empty">Pick a candidate to see how it was judged.</div>';
+  renderCandidates();
+}
+
+async function runBatch() {
+  const items = SELECTED_FILES.filter((f) => f.file);
+  const paste = $("paste-text").value.trim();
+  if (paste) items.push({ name: "pasted_cv.txt", size: paste.length, text: paste });
+
+  if (!items.length) {
+    $("screen-status").textContent = "Choose some CVs first, or paste one as text.";
+    return;
+  }
+
+  if (MODE === "mock") {
+    $("batch-progress").style.display = "block";
+    $("batch-results").innerHTML = "";
+    for (const ev of MOCK_BATCH) {
+      await new Promise((r) => setTimeout(r, 350));
+      handleBatchEvent(ev);
+    }
+    return;
+  }
+
+  // Start the job first, then send the files in small groups. A folder of 300 CVs is tens
+  // of megabytes of base64: sending it in one request would block until the whole upload
+  // finished, and one oversized file would fail the lot. In chunks, the first verdicts
+  // appear while the rest are still uploading.
+  const concurrency = (META.limits && META.limits.defaultConcurrency) || 8;
+  const start = await fetch("/api/batch", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ concurrency, total: items.length, reset: true }),
+  });
+  const started = await start.json();
+  if (started.error) throw new Error(started.error);
+  startFreshShortlist(started.cleared);
+
+  const streamPromise = streamBatch(started.jobId);
+  const CHUNK = 8;
+  for (let i = 0; i < items.length; i += CHUNK) {
+    const files = [];
+    for (const f of items.slice(i, i + CHUNK)) {
+      if (f.text != null) files.push({ name: f.name, text: f.text });
+      else if (/\.pdf$/i.test(f.name)) files.push({ name: f.name, pdfBase64: await readFileAsBase64(f.file) });
+      else files.push({ name: f.name, text: await readFileAsText(f.file) });
+    }
+    const res = await fetch("/api/batch/chunk", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId: started.jobId, files }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (!BATCH_RUNNING) { /* the stream already finished everything */ }
+    $("screen-status").textContent = "sending " + Math.min(i + CHUNK, items.length) + " of " + items.length + " CVs...";
+  }
+  await fetch("/api/batch/finish", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jobId: started.jobId }),
+  });
+  await streamPromise;
+}
+
+async function runSingle() {
+  const cvText = $("paste-text").value.trim();
+  if (!cvText) { $("screen-status").textContent = "Paste a CV first, or choose files."; return; }
+  $("screen-status").innerHTML = '<span class="spin"></span> asking Jev...';
+  const res = await fetch("/api/screen", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cvText, name: "", email: "", reset: true }),
+  });
+  const data = await res.json();
+  $("screen-status").textContent = "";
+  if (data.error) { $("screen-status").innerHTML = '<div class="note err">' + esc(data.error) + "</div>"; return; }
+  // One pasted CV also replaces the shortlist, exactly like a folder does.
+  if (data.cleared) { CANDIDATES = []; DETAIL_ID = null; }
+  const row = normRow(data.row || data.result);
+  if (row && row.id) {
+    CANDIDATES.unshift(row);
+    // One pasted CV is a run too, so the header reports its speed rather than leaving the
+    // user looking at store-wide averages that have nothing to do with what they just did.
+    RUN = {
+      startedAt: Date.now() - (data.elapsedMs || 0),
+      total: 1,
+      done: 1,
+      failed: 0,
+      tokens: row.tokens || 0,
+      costUsd: row.costUsd || 0,
+      wallMs: data.elapsedMs || 0,
+      active: false,
+    };
+    updateStats();
+    openDetail(row.id);
+  }
+}
+
+$("screen-btn").addEventListener("click", async () => {
+  if (BATCH_RUNNING) return;
+  const hasFiles = SELECTED_FILES.length > 0;
+  const hasPaste = $("paste-text").value.trim().length > 0;
+  if (!hasFiles && !hasPaste) { $("screen-status").textContent = "Choose files or paste a CV first."; return; }
+  BATCH_RUNNING = true;
+  $("screen-btn").disabled = true;
+  $("screen-btn").textContent = "Screening...";
+  $("screen-status").textContent = "";
+  try {
+    if (hasFiles) {
+      await runBatch();
+    } else {
+      await runSingle();
+    }
+  } catch (err) {
+    $("screen-status").innerHTML = '<div class="note err">' + esc(String(err)) + "</div>";
+  } finally {
+    // The single-CV path has no event stream to reset these, so it used to leave the button
+    // stuck on "Screening..." and the app refusing every later click. The batch path resets
+    // them on its done event too, and doing it twice is harmless.
+    BATCH_RUNNING = false;
+    $("screen-btn").disabled = false;
+    $("screen-btn").textContent = "Screen with Jev";
+  }
+});
+
+/* ------------------------------------------------------------------ candidates tab */
+/** Headings for a dimension whose own row carried no label, so a heading is never a raw id. */
+const DIM_FALLBACK = {
+  experience_years: "Experience (years)",
+  education: "Education category",
+  food_sector: "Sector depth",
+  age_over_28: "Age over 28",
+  military: "Military service",
+  stability: "Job stability",
+};
+
+function dimensionColumns() {
+  // Columns are what the candidates were actually judged on, taken from the rows themselves, in the
+  // order the engine scored them. A role with no degree requirement therefore carries no education
+  // column, and a heading can never fall back to an internal id like "military".
+  const order = [];
+  const labels = new Map();
+  for (const row of CANDIDATES) {
+    for (const d of row.dimensions || []) {
+      if (labels.has(d.id)) continue;
+      labels.set(d.id, d.label || DIM_FALLBACK[d.id] || d.id);
+      order.push(d.id);
+    }
+  }
+  // An extra field the policy switches on stays visible even before anyone has an answer for it.
+  for (const f of (POLICY && POLICY.extraFields) || []) {
+    if (!f.enabled || labels.has(f.id)) continue;
+    labels.set(f.id, f.label || f.id);
+    order.push(f.id);
+  }
+  return order.map((id) => ({ id, label: labels.get(id) }));
+}
+
+function renderCandidates() {
+  const cols = dimensionColumns();
+  const thead = $("cand-thead");
+  const sortArrow = (key) => (SORT.key === key ? (SORT.dir < 0 ? " &#9660;" : " &#9650;") : "");
+  thead.innerHTML =
+    "<tr>" +
+    '<th data-key="name">Name' + sortArrow("name") + "</th>" +
+    '<th data-key="sourceFile">File' + sortArrow("sourceFile") + "</th>" +
+    '<th data-key="score">Score' + sortArrow("score") + "</th>" +
+    '<th data-key="verdict">Verdict' + sortArrow("verdict") + "</th>" +
+    '<th data-key="needsReview">Review' + sortArrow("needsReview") + "</th>" +
+    cols.map((c) => '<th data-key="dim:' + esc(c.id) + '" title="' + esc(c.label) + '">' + esc(c.label) + sortArrow("dim:" + c.id) + "</th>").join("") +
+    "</tr>";
+  thead.querySelectorAll("th").forEach((th) => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      if (SORT.key === key) SORT.dir = -SORT.dir;
+      else { SORT.key = key; SORT.dir = key === "name" || key === "sourceFile" ? 1 : -1; }
+      renderCandidates();
+    });
+  });
+
+  let rows = CANDIDATES.slice();
+  if (FILTER === "review") rows = rows.filter((r) => r.needsReview);
+  else if (FILTER !== "all") rows = rows.filter((r) => verdictOf(r) === FILTER);
+  if (SEARCH) {
+    const q = SEARCH.toLowerCase();
+    rows = rows.filter((r) => (r.name || "").toLowerCase().includes(q) || (r.sourceFile || "").toLowerCase().includes(q));
+  }
+  const key = SORT.key;
+  rows.sort((a, b) => {
+    let av, bv;
+    if (key === "name") { av = a.name || ""; bv = b.name || ""; return SORT.dir * av.localeCompare(bv); }
+    if (key === "sourceFile") { av = a.sourceFile || ""; bv = b.sourceFile || ""; return SORT.dir * av.localeCompare(bv); }
+    if (key === "verdict") { av = verdictOf(a); bv = verdictOf(b); return SORT.dir * av.localeCompare(bv); }
+    if (key === "needsReview") { av = a.needsReview ? 1 : 0; bv = b.needsReview ? 1 : 0; return SORT.dir * (av - bv); }
+    if (key.startsWith("dim:")) {
+      const id = key.slice(4);
+      av = (a.dimensions || []).find((d) => d.id === id); bv = (b.dimensions || []).find((d) => d.id === id);
+      return SORT.dir * ((av ? av.value : 0) - (bv ? bv.value : 0));
+    }
+    av = a.score || 0; bv = b.score || 0;
+    return SORT.dir * (av - bv);
+  });
+
+  const tbody = $("cand-tbody");
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="' + (5 + cols.length) + '" class="empty">No candidates match.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((r) => {
+    const v = verdictOf(r);
+    const dimCells = cols.map((c) => {
+      const d = (r.dimensions || []).find((x) => x.id === c.id);
+      if (!d) return '<td class="dim">-</td>';
+      const pct = Math.round((d.value || 0) * 100);
+      return '<td class="dim"><span class="mini"><i class="' + grade(d.value) + '" style="width:' + pct + '%"></i></span></td>';
+    }).join("");
+    return "<tr data-id=\"" + r.id + "\" class=\"" + (DETAIL_ID === r.id ? "selected" : "") + "\">" +
+      "<td>" + esc(prettyName(r.name) || r.sourceFile) + (r.stale ? ' <span class="stale">stale</span>' : "") + "</td>" +
+      "<td>" + esc(r.sourceFile || "-") + "</td>" +
+      '<td class="num">' + (r.score != null ? r.score.toFixed(3) : "-") + "</td>" +
+      '<td><span class="badge ' + v + '">' + esc(verdictLabel(v)) + "</span></td>" +
+      '<td>' + (r.needsReview ? '<span class="marker">&#9679; review</span>' : "") + "</td>" +
+      dimCells +
+      "</tr>";
+  }).join("");
+  tbody.querySelectorAll("tr[data-id]").forEach((tr) => {
+    tr.addEventListener("click", () => openDetail(Number(tr.dataset.id)));
+  });
+}
+
+function renderFilters() {
+  const chips = [
+    { key: "all", label: "All" },
+    { key: "INTERVIEW", label: "Ready to interview" },
+    { key: "MAYBE", label: "Maybe" },
+    { key: "PASS", label: "Pass" },
+    { key: "review", label: "Needs a look" }
+  ];
+  $("cand-filters").innerHTML = chips.map((c) =>
+    '<button class="chip ' + (FILTER === c.key ? "active" : "") + '" data-filter="' + c.key + '">' + esc(c.label) + "</button>"
+  ).join("");
+  $("cand-filters").querySelectorAll(".chip").forEach((b) => {
+    b.addEventListener("click", () => { FILTER = b.dataset.filter; renderFilters(); renderCandidates(); });
+  });
+}
+$("cand-search").addEventListener("input", (e) => { SEARCH = e.target.value.trim(); renderCandidates(); });
+
+/**
+ * Clearing throws away every stored judgment, so it asks first. It asks with a second click
+ * rather than a native confirm(): inside an embedded webview that dialog blocks the whole page
+ * and the button appears to freeze, which reads as a bug to the person pressing it.
+ */
+let CLEAR_ARMED = false;
+let CLEAR_TIMER = null;
+function disarmClear(btn) {
+  CLEAR_ARMED = false;
+  clearTimeout(CLEAR_TIMER);
+  btn.classList.remove("armed");
+  btn.textContent = "Clear";
+}
+
+$("cand-clear").addEventListener("click", async () => {
+  const btn = $("cand-clear");
+  if (!CANDIDATES.length) {
+    btn.textContent = "Nothing to clear";
+    setTimeout(() => (btn.textContent = "Clear"), 1500);
+    return;
+  }
+  if (!CLEAR_ARMED) {
+    CLEAR_ARMED = true;
+    btn.classList.add("armed");
+    btn.textContent = "Clear " + CANDIDATES.length + "? Click again";
+    clearTimeout(CLEAR_TIMER);
+    CLEAR_TIMER = setTimeout(() => disarmClear(btn), 5000);
+    return;
+  }
+  disarmClear(btn);
+  btn.disabled = true;
+  btn.textContent = "Clearing...";
+  try {
+    if (MODE === "api") {
+      const res = await fetch("/api/candidates?confirm=yes", { method: "DELETE" });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+    }
+    CANDIDATES = [];
+    STATS = null;
+    DETAIL_ID = null;
+    RUN = null;
+    $("detail-panel").innerHTML = '<div class="empty">Pick a candidate to see how it was judged.</div>';
+    renderCandidates();
+    updateStats();
+  } catch (err) {
+    alert("Could not clear the shortlist: " + err);
+  } finally {
+    $("cand-clear").disabled = false;
+    $("cand-clear").textContent = "Clear";
+  }
+});
+
+$("cand-export").addEventListener("click", () => {
+  if (MODE === "api") {
+    window.location.href = "/api/export.csv";
+    return;
+  }
+  // Offline: build the CSV locally (with a BOM so Greek text opens right in Excel).
+  const cols = dimensionColumns();
+  const header = ["name", "file", "score", "verdict", "needs review"].concat(cols.map((c) => c.label)).concat(["review reasons", "ms", "tokens"]);
+  const lines = [header];
+  CANDIDATES.forEach((r) => {
+    const v = verdictLabel(verdictOf(r));
+    const dims = cols.map((c) => {
+      const d = (r.dimensions || []).find((x) => x.id === c.id);
+      return d ? d.value.toFixed(3) : "";
+    });
+    lines.push([r.name || "", r.sourceFile || "", r.score != null ? r.score.toFixed(3) : "", v, r.needsReview ? "yes" : "no"]
+      .concat(dims).concat([(r.reviewReasons || []).join("; "), r.elapsedMs || "", r.tokens || ""]));
+  });
+  const csv = "\uFEFF" + lines.map((row) => row.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "candidates.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* ------------------------------------------------------------------ detail panel */
+function questionFor(dimId) {
+  return MOCK_QUESTIONS[dimId] || null;
+}
+
+async function openDetail(id) {
+  DETAIL_ID = id;
+  renderCandidates();
+  const panel = $("detail-panel");
+  panel.innerHTML = '<div class="empty"><span class="spin"></span> Loading...</div>';
+  let row = CANDIDATES.find((r) => r.id === id);
+  let answers = null, questions = null;
+  if (MODE === "api") {
+    const data = await tryFetch("/api/candidates/" + id);
+    if (data) {
+      row = normRow(data.row || row);
+      answers = data.answers || null;
+      questions = data.questions || null;
+    }
+  }
+  if (!row) { panel.innerHTML = '<div class="empty">Candidate not found.</div>'; return; }
+  renderDetail(panel, row, answers, questions);
+}
+
+/** "job_hopping" -> "Job hopping", for text a person reads. */
+function prettyOption(k) {
+  return String(k == null ? "" : k).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+/** One probability row: the label, a bar whose width is the probability, and the number. */
+function probRows(entries, topKey) {
+  return '<div class="pw-probs">' + entries.map(([k, p]) => {
+    const pct = Math.max(0, Math.min(1, Number(p) || 0)) * 100;
+    const top = String(k) === String(topKey);
+    // The bar length is the probability and the answer itself is the accent; a low number
+    // is not a warning, so nothing here is coloured by how small it is.
+    return '<div class="pw-row' + (top ? " top" : "") + '">' +
+      '<span class="pw-k">' + esc(k) + "</span>" +
+      '<span class="pw-bar"><i style="width:' + (pct > 0 ? Math.max(1.5, pct) : 0).toFixed(1) + '%"></i></span>' +
+      '<span class="pw-pc">' + Math.round(pct) + "%</span>" +
+      "</div>";
+  }).join("") + "</div>";
+}
+
+/**
+ * One answer, in the shape the TypeSafe playground uses: a big readable answer, how sure
+ * the model was, and the distribution underneath. No JSON, no field names a person cannot
+ * read, and no jargon: a yes/no question is called "Yes or no", not by its internal type.
+ */
+function answerView(q, a) {
+  if (!a) return '<div class="pw-none">No answer came back for this question.</div>';
+  const type = (q && q.type) || a.type;
+  const conf = a.confidence != null ? "confidence " + Math.round(a.confidence * 100) + "%" : "";
+
+  if (a.type === "noul") {
+    const p = Math.max(0, Math.min(1, a.noul || 0));
+    const yes = p >= 0.5;
+    return '<div class="pw-answer"><span class="pw-big ' + (yes ? "yes" : "no") + '">' +
+      (yes ? "Yes" : "No") + '</span><span class="pw-conf">' + Math.round(p * 100) + "% chance of yes</span></div>" +
+      '<div class="pw-slider"><i style="left:' + (p * 100).toFixed(1) + '%"></i></div>';
+  }
+
+  if (a.type === "choice") {
+    const probs = Object.entries(a.probabilities || {})
+      .map(([k, v]) => [prettyOption(k), v])
+      .sort((x, y) => Number(y[1]) - Number(x[1]));
+    return '<div class="pw-answer"><span class="pw-big">' + esc(prettyOption(a.choice)) + "</span>" +
+      (conf ? '<span class="pw-conf">' + conf + "</span>" : "") + "</div>" +
+      probRows(probs.slice(0, 5), prettyOption(a.choice));
+  }
+
+  // A rating question: the position along the scale, then the mass on each level.
+  const levels = q && q.type === "score" && Array.isArray(q.criteria) ? q.criteria : [];
+  const count = levels.length || Object.keys(a.probabilities || {}).length || 2;
+  const pos = Number(a.score || 0);
+  const probs = Object.entries(a.probabilities || {})
+    .map(([k, v]) => [String(k), v])
+    .sort((x, y) => Number(x[0]) - Number(y[0]));
+  return '<div class="pw-answer"><span class="pw-big">' + pos.toFixed(2) + " of " + (count - 1) + "</span>" +
+    (conf ? '<span class="pw-conf">' + conf + "</span>" : "") + "</div>" +
+    probRows(probs, String(Math.round(pos)));
+}
+
+/** A whole question: what was asked on the left, what came back in the middle. */
+function questionRow(qid, q, a) {
+  const type = (q && q.type) || (a && a.type) || "";
+  const tag = type === "score" ? "Rating" : type === "choice" ? "Options" : type === "noul" ? "Yes or no" : "";
+  let constraint = "";
+  if (type === "score" && q && Array.isArray(q.criteria)) {
+    constraint = q.criteria.length + " levels, 0 to " + (q.criteria.length - 1);
+  } else if (type === "choice" && q && q.criteria) {
+    constraint = Object.keys(q.criteria).length + " options";
+  } else if (type === "noul") {
+    constraint = "yes or no";
+  }
+  return '<div class="pw">' +
+    '<div class="pw-left"><div class="pw-key">' + esc(qid) + "</div>" +
+    (q && q.instructions ? '<div class="pw-q">' + esc(q.instructions) + "</div>" : "") + "</div>" +
+    '<div class="pw-mid">' + answerView(q, a) + "</div>" +
+    '<div class="pw-right">' +
+    (tag ? '<span class="pw-tag">' + esc(tag) + "</span>" : "") +
+    (constraint ? '<span class="pw-constraint">' + esc(constraint) + "</span>" : "") +
+    "</div></div>";
+}
+
+function renderDetail(panel, row, answers, questions) {
+  const v = verdictOf(row);
+  const dims = (row.dimensions || []).map((d) => {
+    // The width is the value itself: 1.00 fills the track, 0.00 leaves it empty. Never
+    // zero-width a value that is genuinely above zero, or a low score looks like no data.
+    const value = Math.max(0, Math.min(1, d.value || 0));
+    const pct = value <= 0 ? 0 : Math.max(1.5, value * 100);
+    const q = questions ? questions[d.id] : questionFor(d.id);
+    const modelWords = d.basis || "";
+    const qText = q ? q.instructions : "";
+    return '<div class="dim-bar">' +
+      '<span class="lbl">' + esc(d.label) + (d.unknown ? ' <span class="hint">(unknown)</span>' : "") + "</span>" +
+      '<span class="track" title="' + value.toFixed(2) + ' of 1"><span class="fill ' + grade(value) + '" style="width:' + pct.toFixed(1) + '%"></span></span>' +
+      '<span class="val">' + Math.round(value * 100) + "%</span>" +
+      '<span class="basis">' + esc(modelWords) + "</span>" +
+      "</div>" +
+      (qText ? '<div class="hint" style="margin:0 0 6px 200px;font-size:12px">' + esc(qText) + "</div>" : "");
+  }).join("");
+
+  // Gate chips: one per gate this candidate was actually judged on, and nothing else. A gate the
+  // role never asks about is not a fact about the candidate: "education FAIL" on a role with no
+  // degree requirement reads as a disqualification that never happened. The sector gate is gone
+  // entirely, because this app screens for any role, and one sector's gate has no business being a
+  // fixed part of the panel. What the sector question did to a score is already in the caps and the
+  // review reasons, in the role's own words.
+  const judged = new Set((row.dimensions || []).map((d) => d.id));
+  const gateChip = (good, text) => '<span class="gate ' + (good ? "ok" : "fail") + '">' + text + "</span>";
+  const chips = [];
+  if (judged.has("education")) {
+    chips.push(gateChip(
+      !!(row.gates && row.gates.educationAccepted),
+      "education " + (row.gates && row.gates.educationAccepted ? "ok" : "FAIL"),
+    ));
+  }
+  if (judged.has("stability")) {
+    const flagged = !!(row.gates && row.gates.stabilityRedFlag);
+    chips.push(gateChip(!flagged, "stability red flag " + (flagged ? "YES" : "no")));
+  }
+  const gates = chips.length ? '<div class="gates">' + chips.join("") + "</div>" : "";
+
+  const review = (row.reviewReasons && row.reviewReasons.length)
+    ? '<div class="note"><b>Needs a human look</b><div style="margin-top:4px">' + row.reviewReasons.map(esc).join("<br>") + "</div></div>"
+    : "";
+
+  // Close calls: the model was unsure somewhere, but the score is not on a line, so this is
+  // information rather than a task. Worth reading, not worth blocking on.
+  const notes = (row.notes && row.notes.length)
+    ? '<div class="note soft"><b>Worth knowing</b><div style="margin-top:4px">' + row.notes.map(esc).join("<br>") + "</div></div>"
+    : "";
+
+  let qa = "";
+  if (answers && questions) {
+    qa = Object.keys(questions)
+      .map((qid) => questionRow(qid, questions[qid], answers[qid]))
+      .join("");
+  } else if (row.dimensions) {
+    qa = row.dimensions.map((d) => {
+      const q = questionFor(d.id);
+      return '<div class="qa"><div class="q">' + esc(q ? q.instructions : d.id) + "</div>" +
+        '<div class="a">' + esc(d.kind + " answer: " + d.answer) + "</div></div>";
+    }).join("");
+  }
+
+  panel.innerHTML =
+    '<div class="detail-head">' +
+      '<div><div class="big">' + (row.score != null ? row.score.toFixed(3) : "-") + "</div>" +
+        '<div class="sub">' + esc(row.name || row.sourceFile) + (row.email ? " · " + esc(row.email) : "") + "</div></div>" +
+      '<div class="badge ' + v + '">' + esc(verdictLabel(v)) + "</div>" +
+      '<div class="sub" style="margin:0 0 0 auto;text-align:right">' +
+        esc(row.model || "") + "<br>" + fmtNum(row.tokens) + " tokens · " + fmtNum(row.elapsedMs) + " ms<br>" + esc(row.sourceFile || "") +
+      "</div>" +
+    "</div>" +
+    gates + review + notes +
+    '<h2 style="margin-top:20px">How each part was judged</h2>' + dims +
+    (qa ? '<h2 style="margin-top:20px">What we asked, and what Jev answered</h2>' + qa : "") +
+    '<details><summary>Show the full record</summary><pre>' + esc(JSON.stringify(row, null, 2)) + "</pre></details>";
+}
+
+/* ------------------------------------------------------------------ settings tab */
+function renderSettings() {
+  if (!POLICY) return;
+  $("set-role-title").value = POLICY.roleTitle || "";
+  $("set-min-years").value = POLICY.minExperienceYears || 0;
+  $("set-age").checked = !!(POLICY.age && POLICY.age.enabled);
+  $("set-military").checked = !!(POLICY.military && POLICY.military.enabled);
+  $("set-sector").checked = !!(POLICY.sector && POLICY.sector.enabled);
+  $("set-sector-name").textContent = (POLICY.sector && POLICY.sector.label) || "the required sector";
+  $("set-min-age").value = (POLICY.age && POLICY.age.minAge) || 28;
+  $("set-max-employers").value = (POLICY.stability && POLICY.stability.maxEmployers) || 3;
+  $("set-window-years").value = (POLICY.stability && POLICY.stability.windowYears) || 4;
+  $("set-stability").checked = Number((POLICY.weights || {}).stability || 0) > 0;
+  $("set-cap-education").value = (POLICY.caps && POLICY.caps.educationNotAccepted) || 0;
+  $("set-cap-sector").value = (POLICY.caps && POLICY.caps.noFoodSector) || 0;
+
+  // degrees
+  const deg = $("set-degrees");
+  deg.innerHTML = (POLICY.acceptedEducation || []).map((d, i) =>
+    '<span class="chip">' + esc(d.label) + ' <button class="chip-remove" data-i="' + i + '" title="Remove">&#10005;</button></span>'
+  ).join("");
+  deg.querySelectorAll(".chip-remove").forEach((b) => {
+    b.addEventListener("click", () => {
+      POLICY.acceptedEducation.splice(Number(b.dataset.i), 1);
+      renderSettings();
+    });
+  });
+
+  // weights
+  const w = POLICY.weights || {};
+  const coreLabels = {
+    experience_years: "Experience", education: "Education", food_sector: "Food sector",
+    age_over_28: "Age over 28", military: "Military service", stability: "Job stability"
+  };
+  const wEl = $("set-weights");
+  wEl.innerHTML = Object.keys(coreLabels).map((id) => {
+    const val = w[id] || 0;
+    return '<div class="weight-row"><span class="lbl">' + esc(coreLabels[id]) + "</span>" +
+      '<input type="range" min="0" max="1" step="0.01" value="' + val + '" data-w="' + id + '" />' +
+      '<span class="wv">' + val.toFixed(2) + "</span></div>";
+  }).join("");
+  wEl.querySelectorAll("input[type=range]").forEach((r) => {
+    r.addEventListener("input", () => {
+      POLICY.weights[r.dataset.w] = Number(r.value);
+      r.parentElement.querySelector(".wv").textContent = Number(r.value).toFixed(2);
+    });
+  });
+
+  // thresholds
+  $("set-thr-interview").value = POLICY.thresholds.interview;
+  $("set-thr-interview-v").textContent = POLICY.thresholds.interview.toFixed(2);
+  $("set-thr-maybe").value = POLICY.thresholds.maybe;
+  $("set-thr-maybe-v").textContent = POLICY.thresholds.maybe.toFixed(2);
+
+  renderExtraFields();
+  renderNewFieldBody();
+}
+
+function renderExtraFields() {
+  const lib = (META && META.fieldLibrary) || [];
+  const container = $("extra-fields");
+  container.innerHTML = "";
+
+  // Library cards with on/off switches.
+  lib.forEach((f) => {
+    const inPolicy = (POLICY.extraFields || []).find((x) => x.id === f.id);
+    const enabled = inPolicy ? inPolicy.enabled : !!f.enabled;
+    const card = document.createElement("div");
+    card.className = "field-card";
+    card.innerHTML =
+      '<div class="head">' +
+        '<span class="lbl">' + esc(f.label) + "</span>" +
+        '<span class="kindtag">' + esc(kindLabel(normKind(f.kind))) + "</span>" +
+        '<label class="switch"><input type="checkbox" data-lib="' + esc(f.id) + '" ' + (enabled ? "checked" : "") + ' /><span class="slider"></span></label>' +
+      "</div>" +
+      '<div class="help">' + esc(f.help || "") + "</div>";
+    card.querySelector("input").addEventListener("change", (e) => {
+      const id = e.target.dataset.lib;
+      let existing = (POLICY.extraFields || []).find((x) => x.id === id);
+      if (e.target.checked) {
+        if (!existing) {
+          // `definition` is the whole field: cloning the card summary alone would save a
+          // field with no instruction and no levels, which the server rejects.
+          existing = normField(JSON.parse(JSON.stringify(f.definition || f)));
+          existing.enabled = true;
+          // Keep the library's own importance unless the card names a different default.
+          if (f.defaultWeight != null) existing.weight = f.defaultWeight;
+          else if (!Number.isFinite(existing.weight)) existing.weight = 0.1;
+          POLICY.extraFields.push(existing);
+        } else {
+          existing.enabled = true;
+        }
+      } else if (existing) {
+        existing.enabled = false;
+      }
+      renderCandidates();
+    });
+    container.appendChild(card);
+  });
+
+  // Custom fields already in the policy (not from the library).
+  (POLICY.extraFields || []).forEach((f, idx) => {
+    if (lib.some((x) => x.id === f.id)) return; // library fields shown above
+    container.appendChild(buildCustomFieldCard(f, idx));
+  });
+}
+
+function buildCustomFieldCard(f, idx) {
+  const card = document.createElement("div");
+  card.className = "field-card";
+  const modeNote = f.mode === "flag" ? "Shown as a column only, never changes the score." : "Counts toward the match score.";
+  card.innerHTML =
+    '<div class="head">' +
+      '<span class="lbl">' + esc(f.label) + "</span>" +
+      '<span class="kindtag">' + esc(kindLabel(f.kind)) + "</span>" +
+      '<span class="hint">' + esc(modeNote) + "</span>" +
+      '<button class="del" data-del="' + idx + '" title="Remove">&#10005;</button>' +
+    "</div>" +
+    '<div class="body">' +
+      '<label>What the model should judge</label>' +
+      '<textarea data-f="' + idx + '" data-attr="instructions">' + esc(f.instructions || "") + "</textarea>" +
+      (f.mode === "weight"
+        ? '<div class="weight-row"><span class="lbl">How much this matters</span><input type="range" min="0" max="1" step="0.01" value="' + (f.weight || 0) + '" data-f="' + idx + '" data-attr="weight" /><span class="wv">' + (f.weight || 0).toFixed(2) + "</span></div>"
+        : "") +
+    "</div>";
+  card.querySelectorAll("textarea, input[type=range]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const fi = Number(el.dataset.f);
+      const attr = el.dataset.attr;
+      if (attr === "weight") {
+        POLICY.extraFields[fi].weight = Number(el.value);
+        el.parentElement.querySelector(".wv").textContent = Number(el.value).toFixed(2);
+      } else {
+        POLICY.extraFields[fi][attr] = el.value;
+      }
+    });
+  });
+  card.querySelector("[data-del]").addEventListener("click", () => {
+    POLICY.extraFields.splice(idx, 1);
+    renderSettings();
+  });
+  return card;
+}
+
+function renderNewFieldBody() {
+  const kind = $("new-field-kind").value;
+  const body = $("new-field-body");
+  body.innerHTML = "";
+  if (kind === "score") {
+    body.innerHTML =
+      '<label>Ordered levels, from lowest to highest</label>' +
+      '<div id="new-levels"></div>' +
+      '<button class="chip-add" id="new-level-add">+ Add a level</button>';
+    const levels = ["No hands-on technical work.", "Some hands-on work, mostly supervised.", "Comfortable working independently on technical tasks.", "Deep hands-on expertise, leads technical work."];
+    const renderLevels = () => {
+      const wrap = $("new-levels");
+      wrap.innerHTML = levels.map((l, i) =>
+        '<div class="level-row"><input type="text" value="' + esc(l) + '" data-l="' + i + '" />' +
+        '<button class="del" data-ldel="' + i + '">&#10005;</button></div>'
+      ).join("");
+      wrap.querySelectorAll("input").forEach((inp) => {
+        inp.addEventListener("input", () => { levels[Number(inp.dataset.l)] = inp.value; });
+      });
+      wrap.querySelectorAll("[data-ldel]").forEach((b) => {
+        b.addEventListener("click", () => { levels.splice(Number(b.dataset.ldel), 1); renderLevels(); });
+      });
+    };
+    renderLevels();
+    $("new-level-add").addEventListener("click", () => { levels.push(""); renderLevels(); });
+    window.__newFieldLevels = levels;
+  } else if (kind === "choice") {
+    body.innerHTML =
+      '<label>Options, each with a credit from 0 to 1</label>' +
+      '<div id="new-opts"></div>' +
+      '<button class="chip-add" id="new-opt-add">+ Add an option</button>';
+    const opts = [{ label: "Yes", credit: 1 }, { label: "No", credit: 0 }];
+    const renderOpts = () => {
+      const wrap = $("new-opts");
+      wrap.innerHTML = opts.map((o, i) =>
+        '<div class="opt-row"><input type="text" value="' + esc(o.label) + '" data-ol="' + i + '" />' +
+        '<input type="number" min="0" max="1" step="0.01" value="' + o.credit + '" data-oc="' + i + '" />' +
+        '<button class="del" data-odel="' + i + '">&#10005;</button></div>'
+      ).join("");
+      wrap.querySelectorAll("[data-ol]").forEach((inp) => {
+        inp.addEventListener("input", () => { opts[Number(inp.dataset.ol)].label = inp.value; });
+      });
+      wrap.querySelectorAll("[data-oc]").forEach((inp) => {
+        inp.addEventListener("input", () => { opts[Number(inp.dataset.oc)].credit = Number(inp.value); });
+      });
+      wrap.querySelectorAll("[data-odel]").forEach((b) => {
+        b.addEventListener("click", () => { opts.splice(Number(b.dataset.odel), 1); renderOpts(); });
+      });
+    };
+    renderOpts();
+    $("new-opt-add").addEventListener("click", () => { opts.push({ label: "", credit: 0.5 }); renderOpts(); });
+    window.__newFieldOpts = opts;
+  } else {
+    body.innerHTML =
+      '<label>What a yes means</label><input type="text" id="new-yes" value="The CV states or implies this." />' +
+      '<label>What a no means</label><input type="text" id="new-no" value="The CV gives no sign of this." />';
+  }
+}
+$("new-field-kind").addEventListener("change", renderNewFieldBody);
+
+$("new-field-add").addEventListener("click", () => {
+  const label = $("new-field-label").value.trim();
+  const instructions = $("new-field-instructions").value.trim();
+  if (!label || !instructions) { $("save-result").textContent = "Give the field a name and an instruction first."; $("save-result").className = "err"; return; }
+  const kind = $("new-field-kind").value;
+  const field = { id: "custom_" + Date.now(), label, kind, mode: "weight", weight: 0.1, instructions, enabled: true, reviewWhen: { options: [], yesnoAbove: 0.65 } };
+  if (kind === "score") {
+    const levels = (window.__newFieldLevels || []).filter((l) => l.trim());
+    if (levels.length < 2) { $("save-result").textContent = "A rating question needs at least two levels."; $("save-result").className = "err"; return; }
+    field.criteria = levels;
+  } else if (kind === "choice") {
+    const opts = (window.__newFieldOpts || []).filter((o) => o.label.trim());
+    if (opts.length < 2) { $("save-result").textContent = "An options question needs at least two options."; $("save-result").className = "err"; return; }
+    field.criteria = {};
+    field.choiceValues = {};
+    opts.forEach((o) => {
+      const key = o.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      field.criteria[key] = o.label.trim();
+      field.choiceValues[key] = o.credit;
+    });
+  } else {
+    field.criteria = {};
+    field.noulCriteria = { true: $("new-yes").value, false: $("new-no").value };
+  }
+  POLICY.extraFields.push(field);
+  $("new-field-label").value = "";
+  $("new-field-instructions").value = "";
+  renderSettings();
+  renderCandidates();
+  $("save-result").textContent = "";
+});
+
+$("set-degree-add").addEventListener("click", () => {
+  const v = $("set-degree-input").value.trim();
+  if (!v) return;
+  POLICY.acceptedEducation.push({ key: "deg_" + Date.now(), label: v, match: v });
+  // Listing a degree the role requires is also a statement that it matters: a zero weight here
+  // would have judged every candidate against it while never counting towards the score.
+  if (!Number((POLICY.weights || {}).education || 0)) {
+    if (!POLICY.weights) POLICY.weights = {};
+    POLICY.weights.education = 0.15;
+  }
+  $("set-degree-input").value = "";
+  renderSettings();
+});
+$("set-degree-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("set-degree-add").click(); });
+
+$("set-thr-interview").addEventListener("input", (e) => { POLICY.thresholds.interview = Number(e.target.value); $("set-thr-interview-v").textContent = Number(e.target.value).toFixed(2); });
+$("set-thr-maybe").addEventListener("input", (e) => { POLICY.thresholds.maybe = Number(e.target.value); $("set-thr-maybe-v").textContent = Number(e.target.value).toFixed(2); });
+/* Switching a rule off has to stop paying for it as well, or the policy contradicts itself: a
+   weight for a switched-off rule does nothing, and the server is right to refuse to save it.
+   Turning the rule back on restores the weight it had. */
+const DEFAULT_WEIGHTS = { experience_years: 0.2, education: 0.2, food_sector: 0.2, age_over_28: 0.15, military: 0.1, stability: 0.15 };
+const WEIGHT_MEMO = {};
+function dimensionWeight(id, on) {
+  if (!POLICY.weights) POLICY.weights = {};
+  const current = Number(POLICY.weights[id] || 0);
+  if (on) {
+    if (current <= 0) POLICY.weights[id] = WEIGHT_MEMO[id] || DEFAULT_WEIGHTS[id] || 0.1;
+  } else {
+    if (current > 0) WEIGHT_MEMO[id] = current;
+    POLICY.weights[id] = 0;
+  }
+  renderSettings();
+}
+
+$("set-age").addEventListener("change", (e) => { POLICY.age.enabled = e.target.checked; dimensionWeight("age_over_28", e.target.checked); });
+$("set-military").addEventListener("change", (e) => { POLICY.military.enabled = e.target.checked; dimensionWeight("military", e.target.checked); });
+$("set-sector").addEventListener("change", (e) => { POLICY.sector.enabled = e.target.checked; dimensionWeight("food_sector", e.target.checked); });
+$("set-stability").addEventListener("change", (e) => { dimensionWeight("stability", e.target.checked); });
+$("set-min-age").addEventListener("input", (e) => { POLICY.age.minAge = Math.max(16, Math.min(70, Number(e.target.value) || 28)); });
+$("set-max-employers").addEventListener("input", (e) => { POLICY.stability.maxEmployers = Math.max(1, Number(e.target.value) || 3); });
+$("set-window-years").addEventListener("input", (e) => { POLICY.stability.windowYears = Math.max(1, Number(e.target.value) || 4); });
+$("set-cap-education").addEventListener("input", (e) => { POLICY.caps.educationNotAccepted = Math.max(0, Math.min(1, Number(e.target.value) || 0)); });
+$("set-cap-sector").addEventListener("input", (e) => { POLICY.caps.noFoodSector = Math.max(0, Math.min(1, Number(e.target.value) || 0)); });
+$("set-role-title").addEventListener("input", (e) => { POLICY.roleTitle = e.target.value; });
+$("set-min-years").addEventListener("input", (e) => { POLICY.minExperienceYears = Number(e.target.value) || 0; });
+
+$("save-btn").addEventListener("click", async () => {
+  $("save-result").textContent = "";
+  $("save-btn").disabled = true;
+  try {
+    let resp;
+    if (MODE === "api") {
+      const res = await fetch("/api/policy", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ policy: POLICY }),
+      });
+      resp = await res.json();
+    } else {
+      // Offline: simulate the promise the design rests on.
+      await new Promise((r) => setTimeout(r, 300));
+      resp = { saved: true, savedAt: new Date().toISOString(), requiresInference: CANDIDATES.filter((c) => c.stale).length, rescored: { n: CANDIDATES.length, ms: 3, tokens: 0 } };
+    }
+    if (resp.error) {
+      // Say exactly what is wrong. "the policy has problems" on its own leaves a person
+      // guessing at which control is at fault.
+      const issues = Array.isArray(resp.issues) ? resp.issues : [];
+      throw new Error(
+        issues.length
+          ? issues.map((i) => (i.path ? i.path + ": " : "") + i.message).join(" · ")
+          : resp.error,
+      );
+    }
+    const n = (resp.rescored && resp.rescored.n) || 0;
+    const ms = (resp.rescored && resp.rescored.ms) || 0;
+    const tokens = (resp.rescored && resp.rescored.tokens) || 0;
+    $("save-result").textContent = n + " candidate" + (n === 1 ? "" : "s") + " re-scored in " + ms + " ms, " + tokens + " tokens used";
+    $("save-result").className = "";
+    const req = resp.requiresInference || 0;
+    const btn = $("rescan-btn");
+    if (req > 0) {
+      btn.style.display = "inline-block";
+      btn.textContent = "Re-scan " + req + " candidate" + (req === 1 ? "" : "s");
+    } else {
+      btn.style.display = "none";
+    }
+    updateStats();
+  } catch (err) {
+    $("save-result").textContent = String(err);
+    $("save-result").className = "err";
+  } finally {
+    $("save-btn").disabled = false;
+  }
+});
+
+$("rescan-btn").addEventListener("click", async () => {
+  $("save-result").textContent = "";
+  $("rescan-btn").disabled = true;
+  try {
+    if (MODE === "api") {
+      const res = await fetch("/api/rescan", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ only: "stale" }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      await streamBatch(data.jobId);
+    } else {
+      $("batch-progress").style.display = "block";
+      $("batch-results").innerHTML = "";
+      for (const ev of MOCK_BATCH) {
+        await new Promise((r) => setTimeout(r, 300));
+        handleBatchEvent(ev);
+      }
+    }
+  } catch (err) {
+    $("save-result").textContent = String(err);
+    $("save-result").className = "err";
+  } finally {
+    $("rescan-btn").disabled = false;
+  }
+});
+
+/* ------------------------------------------------------------------ boot */
+(async function boot() {
+  await loadData();
+  populatePresets();
+  renderSettings();
+  renderFilters();
+  renderCandidates();
+  updateStats();
+  refreshFileSummary();
+})();
+</script>
+</body>
+</html>

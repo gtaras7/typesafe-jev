@@ -1,0 +1,24 @@
+node_modules/
+.env
+.env.local
+*.log
+
+# Anything that came from a real person's document.
+#
+# data/files keeps a copy of every PDF that has been screened, keyed by content hash, and
+# data/jev.sqlite holds the extracted text of every one of them. Neither belongs in a public
+# repository, and the app rebuilds both from scratch.
+data/
+*.sqlite
+
+# Build output and generated reports.
+out/
+
+# Hand-written expectation sets. They quote real file paths and real candidates.
+evals/labels.json
+
+# Python bytecode, which embeds absolute paths from the machine that ran it.
+__pycache__/
+*.pyc
+
+.DS_Store

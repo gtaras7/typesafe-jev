@@ -1,0 +1,28 @@
+{
+  "name": "typesafe-cv-screen",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Jev (TypeSafe System One) CV screening: a folder of hundreds of CVs judged once, then re-scored in milliseconds whenever the policy changes.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "screen": "tsx src/cli.ts",
+    "test": "tsx --test src/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "ui": "tsx src/server.ts",
+    "report": "tsx scripts/report.ts",
+    "probe": "tsx scripts/probe.ts",
+    "ingest": "tsx src/ingest.ts",
+    "eval": "tsx scripts/eval.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "bench": "tsx scripts/bench.ts",
+    "sample-cvs": "python3 scripts/make-sample-cvs.py --count 40 --out fixtures/sample-cvs --clean"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
