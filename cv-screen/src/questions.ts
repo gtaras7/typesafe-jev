@@ -95,22 +95,38 @@ export function buildQuestions(policyOrRole: Policy | RoleSpec, today: string): 
         false: "No work history at all, or roles listed with no dates or durations whatsoever.",
       },
     };
-    q.experience_level = {
-      type: "score",
-      instructions: `How many years of professional work experience does this candidate have, counting all positions and treating concurrent freelance or contract work as a single continuous run? Compare against the bar of ${bar} years.`,
-      criteria: [
-        {
-          what: "Under 1 year of professional experience",
-          examples: ["Internships only", "One role under a year"],
-        },
-        { what: "1 to under 2 years of professional experience" },
-        { what: `2 to under ${bar} years, short of the bar` },
-        {
-          what: `${bar} years or more of professional experience`,
-          examples: ["Roles spanning 2015 to today", "8+ years in the industry"],
-        },
-      ],
-    };
+    // Seniority presets supply custom levels that match their own bar and rubric.
+    // When present they replace the auto-generated four-level template entirely so the
+    // model receives level text that is meaningful for that seniority (e.g. "internship
+    // counts" for entry-level vs "system ownership expected" for senior).
+    if (policy.experienceLevels && policy.experienceLevels.length >= 2) {
+      q.experience_level = {
+        type: "score",
+        instructions:
+          policy.experienceInstructions ??
+          `How much professional work experience does this candidate have? Match their background against the levels for this role, treating concurrent freelance or contract work as a single continuous run.`,
+        criteria: policy.experienceLevels,
+      };
+    } else {
+      q.experience_level = {
+        type: "score",
+        instructions:
+          policy.experienceInstructions ??
+          `How many years of professional work experience does this candidate have, counting all positions and treating concurrent freelance or contract work as a single continuous run? Compare against the bar of ${bar} years.`,
+        criteria: [
+          {
+            what: "Under 1 year of professional experience",
+            examples: ["Internships only", "One role under a year"],
+          },
+          { what: "1 to under 2 years of professional experience" },
+          { what: `2 to under ${bar} years, short of the bar` },
+          {
+            what: `${bar} years or more of professional experience`,
+            examples: ["Roles spanning 2015 to today", "8+ years in the industry"],
+          },
+        ],
+      };
+    }
   }
 
   // --- Dimension 2: education. This question is also the gate, so the closed set

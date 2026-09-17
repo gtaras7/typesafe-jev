@@ -12,8 +12,8 @@
  */
 
 import type { ServerResponse } from "node:http";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { basename, join } from "node:path";
+import { readFileSync, readdirSync, statSync, realpathSync } from "node:fs";
+import { basename, join, resolve, sep } from "node:path";
 import { RunStore } from "./store.js";
 import { screenCv } from "./screen.js";
 import { bestName, emailFromText, extractAny, extractPdfFile, extractPdfFiles } from "./pdf.js";
@@ -324,9 +324,21 @@ export class Jobs {
   }
 }
 
-/** Files under a path: a single file, or every CV in a folder (and its subfolders). */
-export function expandPaths(paths: string[], maxDepth = 3): string[] {
+/**
+ * Files under a path: a single file, or every CV in a folder (and its subfolders).
+ *
+ * @param scanRoot - When supplied, every resolved path must start with this prefix.
+ *   Defense-in-depth: the server validates against SCAN_ROOT before calling this, but
+ *   this check ensures no path can slip through even if called directly.
+ */
+export function expandPaths(paths: string[], maxDepth = 3, scanRoot?: string): string[] {
   const out: string[] = [];
+
+  /** Resolve symlinks for existing paths, fall back to normalise-only. */
+  function safeRealpath(p: string): string {
+    try { return realpathSync(p); } catch { return resolve(p); }
+  }
+
   const walk = (dir: string, depth: number) => {
     let entries: string[];
     try {
@@ -337,6 +349,11 @@ export function expandPaths(paths: string[], maxDepth = 3): string[] {
     for (const entry of entries) {
       if (entry.startsWith(".")) continue;
       const full = join(dir, entry);
+      // Check that a resolved path is still within the scan root (catches symlink escapes).
+      if (scanRoot) {
+        const real = safeRealpath(full);
+        if (real !== scanRoot && !real.startsWith(scanRoot + sep)) continue;
+      }
       let st;
       try {
         st = statSync(full);
@@ -352,6 +369,14 @@ export function expandPaths(paths: string[], maxDepth = 3): string[] {
   };
   for (const raw of paths) {
     const p = raw.replace(/^~/, process.env.HOME ?? "~");
+    // Enforce scan root before stat'ing so a non-existent escape attempt is also rejected.
+    if (scanRoot) {
+      const real = safeRealpath(p);
+      if (real !== scanRoot && !real.startsWith(scanRoot + sep)) {
+        console.warn(`[security] expandPaths: rejected path outside scan root: ${p}`);
+        continue;
+      }
+    }
     let st;
     try {
       st = statSync(p);

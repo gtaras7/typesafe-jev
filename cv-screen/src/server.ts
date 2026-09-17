@@ -33,8 +33,8 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
-import { dirname, extname, join, normalize, resolve } from "node:path";
+import { readFileSync, existsSync, statSync, readdirSync, realpathSync } from "node:fs";
+import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENV_LOAD_RESULT, ENV_FILE_PATH } from "./env.js";
 import { buildQuestions, policyQuestionIds } from "./questions.js";
@@ -49,13 +49,29 @@ import { rowFromStored, histogram, type ApiRow } from "./rows.js";
 import { toCsv } from "./csv.js";
 import { costUsd } from "./pricing.js";
 import { extractPdfBytes, pythonStatus } from "./pdf.js";
-import { Jobs, expandPaths, makeRunner, tasksFromPaths } from "./worker.js";
+import { Jobs, expandPaths, makeRunner, tasksFromPaths, MAX_CV_CHARS } from "./worker.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 const PUBLIC_DIR = join(ROOT, "public");
 const PORT = Number(process.env.PORT ?? 8799);
-const MAX_BODY = 96 * 1024 * 1024;
+
+/** Reduced from 96 MB to limit DoS surface via large upload. */
+const MAX_BODY = 15 * 1024 * 1024; // 15 MB
+
+/**
+ * Shared secret for routes that spend the API key, mutate state, or return PII.
+ * Set CV_SCREEN_API_TOKEN in .env. When unset, loopback-only access is still allowed
+ * (server binds 127.0.0.1), but a loud warning is printed at startup.
+ */
+const API_TOKEN = process.env.CV_SCREEN_API_TOKEN?.trim() || null;
+
+/**
+ * Folder-scan allowlist. Every path in POST /api/batch/scan must resolve to within this tree.
+ * Defaults to the project root so the built-in bench and smoke scripts work out of the box.
+ * In production set SCAN_ROOT=/absolute/path/to/your/cvs to restrict it to that directory.
+ */
+const SCAN_ROOT = process.env.SCAN_ROOT ? resolve(process.env.SCAN_ROOT) : ROOT;
 
 const store = openStore(process.env.JEV_DB);
 let policy: Policy = loadPolicy();
@@ -85,6 +101,38 @@ function text(res: ServerResponse, status: number, body: string, type = "text/pl
     "Cache-Control": "no-store",
   });
   res.end(body);
+}
+
+/**
+ * Check the request for a valid API token.  Returns true and continues; returns false
+ * and writes a 401 when the token is wrong or missing.
+ * When no token is configured the server trusts the loopback bind and allows all.
+ */
+function requireAuth(req: IncomingMessage, res: ServerResponse): boolean {
+  if (!API_TOKEN) return true; // no token configured → loopback-only, allowed
+  const authHeader = String(req.headers["authorization"] ?? "");
+  const tokenHeader = String(req.headers["x-api-token"] ?? "");
+  const provided = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : tokenHeader.trim();
+  if (provided === API_TOKEN) return true;
+  json(res, 401, { error: "Unauthorized" });
+  return false;
+}
+
+/**
+ * Returns true when `rawPath` resolves to within SCAN_ROOT (symlinks resolved).
+ * Uses resolve() for non-existent paths so validation still works without the path existing.
+ */
+function isUnderScanRoot(rawPath: string): boolean {
+  const expanded = rawPath.replace(/^~/, process.env.HOME ?? "~");
+  let resolved: string;
+  try {
+    resolved = realpathSync(expanded); // resolves symlinks for existing paths
+  } catch {
+    resolved = resolve(expanded); // normalises .. etc for non-existent paths
+  }
+  return resolved === SCAN_ROOT || resolved.startsWith(SCAN_ROOT + sep);
 }
 
 async function readBody(req: IncomingMessage, limit = MAX_BODY): Promise<string> {
@@ -225,14 +273,14 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && path === "/api/meta") {
       const last = store.all(1)[0];
       const py = await pythonStatus();
+      // Security: return booleans only — no filesystem paths, no error details that
+      // reveal interpreter versions or installation layout.
       json(res, 200, {
         app: { name: "Jev CV Screening", version: "0.2.0" },
         model: { id: last?.model || null, requested: "jev-latest" },
         hasKey: Boolean(process.env.TYPESAFE_API_KEY),
-        keySource,
-        policyPath: POLICY_PATH,
-        pdfReader: "bin" in py ? py.bin : null,
-        pdfReaderError: "error" in py ? py.error : null,
+        hasPdf: "bin" in py,
+        hasToken: Boolean(API_TOKEN),
         store: { candidates: store.count(), screened_at: store.newestAt() },
         limits: {
           maxUploadMb: Math.round(MAX_BODY / 1024 / 1024),
@@ -251,7 +299,10 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/presets") {
-      json(res, 200, { presets: PRESETS.map((p) => ({ id: p.id, label: p.label, help: p.help })) });
+      // Include the full policy so the browser can preview a preset in Settings
+      // before the user clicks "Save and re-score". The policy is read-only here;
+      // the PUT /api/policy route is the only write path.
+      json(res, 200, { presets: PRESETS.map((p) => ({ id: p.id, label: p.label, help: p.help, policy: p.policy })) });
       return;
     }
 
@@ -267,12 +318,14 @@ const server = createServer(async (req, res) => {
 
     /* -------------------------------------------------------------- candidates */
     if (req.method === "GET" && path === "/api/candidates") {
+      if (!requireAuth(req, res)) return;
       const rows = store.all().map(rowFromStored);
       json(res, 200, { rows, stats: statsFor(policy, rows), columns: columnMeta(policy) });
       return;
     }
 
     if (req.method === "GET" && path.startsWith("/api/candidates/")) {
+      if (!requireAuth(req, res)) return;
       const id = Number(path.slice("/api/candidates/".length));
       const stored = store.get(id);
       if (!stored) {
@@ -281,6 +334,8 @@ const server = createServer(async (req, res) => {
       }
       const row = rowFromStored(stored);
       const state = JSON.parse(stored.policy_json || "null");
+      // cvText is full PII — omit by default; expose only when explicitly requested AND authed.
+      const includeCv = url.searchParams.get("includeCv") === "1";
       json(res, 200, {
         row,
         result: JSON.parse(stored.result_json || "{}"),
@@ -291,13 +346,14 @@ const server = createServer(async (req, res) => {
         model: stored.model,
         elapsedMs: stored.elapsed_ms,
         cvChars: stored.cv_chars,
-        cvText: stored.cv_text,
+        ...(includeCv ? { cvText: stored.cv_text } : {}),
         missingQuestions: missingQuestions(policy, JSON.parse(stored.answers_json || "{}")),
       });
       return;
     }
 
     if (req.method === "DELETE" && path === "/api/candidates") {
+      if (!requireAuth(req, res)) return;
       if (url.searchParams.get("confirm") !== "yes") {
         json(res, 400, { error: "add ?confirm=yes to clear the shortlist" });
         return;
@@ -307,6 +363,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/export.csv") {
+      if (!requireAuth(req, res)) return;
       const rows = store.all().map(rowFromStored);
       const csv = toCsv(rows, policy);
       res.writeHead(200, {
@@ -321,9 +378,10 @@ const server = createServer(async (req, res) => {
 
     /* ---------------------------------------------------------------- screening */
     if (req.method === "POST" && (path === "/api/screen" || path === "/api/screen-pdf")) {
+      if (!requireAuth(req, res)) return;
       if (!process.env.TYPESAFE_API_KEY) {
         json(res, 503, {
-          error: `TYPESAFE_API_KEY is not set. Put it in ${ENV_FILE_PATH} and restart, or export it before starting the server.`,
+          error: "TYPESAFE_API_KEY is not set. Put it in .env and restart.",
         });
         return;
       }
@@ -337,11 +395,21 @@ const server = createServer(async (req, res) => {
           return;
         }
         const b64 = body.pdfBase64.includes(",") ? body.pdfBase64.split(",")[1] : body.pdfBase64;
-        cvText = await extractPdfBytes(Buffer.from(b64, "base64"), label);
+        const pdfBytes = Buffer.from(b64, "base64");
+        // Reject non-PDF uploads by magic bytes (%PDF header).
+        if (pdfBytes.length < 5 || pdfBytes.subarray(0, 4).toString("ascii") !== "%PDF") {
+          json(res, 400, { error: "uploaded file does not appear to be a PDF" });
+          return;
+        }
+        cvText = await extractPdfBytes(pdfBytes, label);
       }
       if (!cvText.trim()) {
         json(res, 400, { error: "no CV text to judge" });
         return;
+      }
+      // Apply the same character cap the batch worker uses to avoid oversized API requests.
+      if (cvText.length > MAX_CV_CHARS) {
+        cvText = cvText.slice(0, MAX_CV_CHARS);
       }
 
       const started = Date.now();
@@ -400,8 +468,9 @@ const server = createServer(async (req, res) => {
 
     /* -------------------------------------------------------------------- batch */
     if (req.method === "POST" && path === "/api/batch") {
+      if (!requireAuth(req, res)) return;
       if (!process.env.TYPESAFE_API_KEY) {
-        json(res, 503, { error: `TYPESAFE_API_KEY is not set (looked in ${ENV_FILE_PATH}).` });
+        json(res, 503, { error: "TYPESAFE_API_KEY is not set. Put it in .env and restart." });
         return;
       }
       const body = await readJson(req);
@@ -423,6 +492,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && path === "/api/batch/chunk") {
+      if (!requireAuth(req, res)) return;
       const body = await readJson(req);
       const job = jobs.get(String(body.jobId ?? ""));
       if (!job) {
@@ -442,6 +512,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && path === "/api/batch/finish") {
+      if (!requireAuth(req, res)) return;
       const body = await readJson(req);
       const job = jobs.get(String(body.jobId ?? ""));
       if (!job) {
@@ -454,17 +525,29 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && path === "/api/batch/scan") {
+      if (!requireAuth(req, res)) return;
       if (!process.env.TYPESAFE_API_KEY) {
-        json(res, 503, { error: `TYPESAFE_API_KEY is not set (looked in ${ENV_FILE_PATH}).` });
+        json(res, 503, { error: "TYPESAFE_API_KEY is not set. Put it in .env and restart." });
         return;
       }
       const body = await readJson(req);
-      const paths: string[] = Array.isArray(body.paths)
+      const rawPaths: string[] = Array.isArray(body.paths)
         ? body.paths.map(String)
         : typeof body.path === "string"
           ? [body.path]
           : [];
-      const files = expandPaths(paths);
+      // Security: reject any path that escapes the configured SCAN_ROOT.
+      const rejectedPaths = rawPaths.filter((p) => !isUnderScanRoot(p));
+      if (rejectedPaths.length) {
+        console.warn(`[security] /api/batch/scan rejected paths outside SCAN_ROOT (${SCAN_ROOT}):`, rejectedPaths);
+        json(res, 400, {
+          error: `Paths must be inside the configured scan directory. Set SCAN_ROOT in .env to expand it.`,
+          rejected: rejectedPaths.length,
+        });
+        return;
+      }
+      const paths = rawPaths;
+      const files = expandPaths(paths, 3, SCAN_ROOT);
       const cleared = maybeClear(body);
       const job = jobs.create("screen", clampConcurrency(body.concurrency), makeRunner(store, policy), files.length);
       json(res, 200, { jobId: job.id, total: files.length, files: files.length, cleared });
@@ -489,6 +572,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/batch/stream") {
+      if (!requireAuth(req, res)) return;
       const job = jobs.get(url.searchParams.get("jobId") ?? "");
       if (!job) {
         json(res, 404, { error: "no such job" });
@@ -505,8 +589,9 @@ const server = createServer(async (req, res) => {
 
     /* ------------------------------------------------------------------- rescan */
     if (req.method === "POST" && path === "/api/rescan") {
+      if (!requireAuth(req, res)) return;
       if (!process.env.TYPESAFE_API_KEY) {
-        json(res, 503, { error: `TYPESAFE_API_KEY is not set (looked in ${ENV_FILE_PATH}).` });
+        json(res, 503, { error: "TYPESAFE_API_KEY is not set. Put it in .env and restart." });
         return;
       }
       const pending = store.pendingRescan();
@@ -533,6 +618,7 @@ const server = createServer(async (req, res) => {
 
     /* ------------------------------------------------------------------- policy */
     if (req.method === "PUT" && path === "/api/policy") {
+      if (!requireAuth(req, res)) return;
       const body = await readJson(req);
       if (!body || typeof body.policy !== "object" || body.policy === null) {
         json(res, 400, { error: "body must be { policy: {...} }" });
@@ -565,6 +651,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && path === "/api/policy/preset") {
+      if (!requireAuth(req, res)) return;
       const body = await readJson(req);
       const preset = presetById(String(body.id ?? ""));
       if (!preset) {
@@ -586,9 +673,11 @@ const server = createServer(async (req, res) => {
 
     json(res, 404, { error: `no route for ${req.method} ${path}` });
   } catch (err) {
+    // Log full details server-side; return a generic message to the client to avoid
+    // leaking stack traces, filesystem paths, or other internal information.
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[ui] request failed:", message);
-    json(res, 500, { error: message });
+    console.error("[ui] request failed:", message, err instanceof Error ? err.stack : "");
+    json(res, 500, { error: "Internal server error" });
   }
 });
 
@@ -631,12 +720,17 @@ function toTask(file: any): { name: string; bytes?: Buffer; text?: string } {
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`\n  Jev CV screening  ->  http://localhost:${PORT}`);
   console.log(`  role:   ${policy.roleTitle}`);
-  console.log(`  policy: ${POLICY_PATH}`);
   console.log(`  store:  ${store.count()} candidate${store.count() === 1 ? "" : "s"}`);
-  console.log(`  key:    ${keySource}`);
+  console.log(`  auth:   ${API_TOKEN ? "CV_SCREEN_API_TOKEN is set ✓" : "⚠ CV_SCREEN_API_TOKEN not set — set it in .env before sharing access"}`);
+  console.log(`  scan:   ${SCAN_ROOT}`);
   void pythonStatus().then((s) =>
-    console.log(`  pdf:    ${"bin" in s ? s.bin : `UNAVAILABLE: ${s.error}`}\n`),
+    console.log(`  pdf:    ${"bin" in s ? "available ✓" : `UNAVAILABLE: ${s.error}`}\n`),
   );
+  if (!API_TOKEN) {
+    console.warn("\n  [SECURITY] CV_SCREEN_API_TOKEN is not configured.");
+    console.warn("  Mutating routes require no token. This is acceptable for loopback-only");
+    console.warn("  local demo use. Set CV_SCREEN_API_TOKEN in .env before any network exposure.\n");
+  }
 });
 
 export { server, store, jobs };

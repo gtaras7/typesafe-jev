@@ -76,6 +76,14 @@ export interface Policy {
   educationNoMatchText?: string;
   /** Optional override of the education question's instruction line. */
   educationInstructions?: string;
+  /**
+   * Optional override of the experience Score levels. When set, replaces the auto-generated
+   * 4-level template so seniority presets can tailor the bar (e.g. "internship counts" for
+   * entry-level vs. "system ownership expected" for senior).
+   */
+  experienceLevels?: Array<string | { what: string; examples?: string[] }>;
+  /** Optional override of the experience question's instruction line. */
+  experienceInstructions?: string;
   /** Core dimension weights, by DimensionId. */
   weights: Record<string, number>;
   caps: { educationNotAccepted: number; noFoodSector: number };

@@ -13,7 +13,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { FIELD_LIBRARY, libraryMeta, libraryField, hydrateLibraryField } from "./fields.js";
 import { validatePolicy, type ExtraField, type Policy } from "./policy.js";
-import { FOOD_INDUSTRY_POLICY, defaultPolicy } from "./presets.js";
+import { FOOD_INDUSTRY_POLICY } from "./presets.js";
 
 /** What `/api/policy` used to send for a field: everything the card needs, nothing more. */
 function asCardSummary(id: string): ExtraField {
@@ -101,8 +101,13 @@ test("a kind spelled for display comes back in the policy's own spelling", () =>
 test("switching on the two fields that failed now saves cleanly", () => {
   // The report this file came from: "extraFields.technical_depth: Write the instruction
   // the model should follow. ... extraFields.english_level: An options question needs at
-  // least two options." on the real preset, with both new fields switched on.
-  const policy = defaultPolicy();
+  // least two options." on the food-industry baseline, with both new fields switched on.
+  const policy = {
+    ...FOOD_INDUSTRY_POLICY,
+    extraFields: [
+      { ...libraryField("career_progression")!, enabled: true },
+    ],
+  };
   for (const id of ["technical_depth", "english_level"]) {
     policy.extraFields.push(hydrateLibraryField({ ...asCardSummary(id), enabled: true }));
   }

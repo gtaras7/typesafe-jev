@@ -53,6 +53,23 @@ npm run ui                      # -> http://localhost:8799
 
 Get your key. `.env` is gitignored, and a real environment variable wins over the file. If the key is missing, the app still boots and screening returns a clear error instead of a silent failure.
 
+## Security configuration
+
+The server binds to `127.0.0.1` only. For a single-machine local demo that is the only network boundary required. Before sharing access over a network (SSH port forward, reverse proxy, etc.), set the two additional variables in `.env`:
+
+```bash
+# Protects mutating routes and PII responses from CSRF and accidental access.
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+CV_SCREEN_API_TOKEN=<your-token>
+
+# Restricts /api/batch/scan to this directory tree (default: project root).
+SCAN_ROOT=/absolute/path/to/your/cv/folder
+```
+
+When `CV_SCREEN_API_TOKEN` is set the browser UI prompts for it once on first load and stores it in `localStorage`. Every API request then sends it as `Authorization: Bearer <token>`. The real TypeSafe API key is never exposed to the browser — it stays server-side only.
+
+The startup log prints `⚠ CV_SCREEN_API_TOKEN not set` when the token is missing, and lists the active `SCAN_ROOT` on every boot.
+
 PDF text comes from pymupdf through a small python script (`scripts/pdf_to_text.py`). The
 interpreter is probed at boot and printed:
 
@@ -310,9 +327,9 @@ npm run eval                                  # grade raw judgments against labe
 npm run report -- out/run.json -o out/report.html
 npm run probe                                 # dump the raw answers for the two fixtures
 
-# switch role from a script: food-industry-qa, software-engineer, any-role
+# switch seniority from a script: entry-level-job, junior-level-job, senior-level-job, ceo-level-job
 curl -s -X POST localhost:8799/api/policy/preset \
-  -H 'content-type: application/json' -d '{"id":"software-engineer"}'
+  -H 'content-type: application/json' -d '{"id":"junior-level-job"}'
 ```
 
 Scripts that call the model, and so need `TYPESAFE_API_KEY`: `ui`, `ingest` (without `--rescore`

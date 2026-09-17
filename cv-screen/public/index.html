@@ -17,6 +17,7 @@
     --bad: #ff6b6b;
     --accent: #7c8cff;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -75,6 +76,7 @@
     width: 100%; background: var(--panel2); color: var(--ink);
     border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 14px;
   }
+  select option, select optgroup { background: var(--panel2); color: var(--ink); }
   textarea { min-height: 120px; resize: vertical; }
   .hint { color: var(--dim); font-size: 12.5px; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -316,8 +318,9 @@
       <label for="paste-text">Or paste a CV as text</label>
       <textarea id="paste-text" placeholder="Paste the CV text here, then press Screen with Jev."></textarea>
 
-      <label for="preset-select">Role preset</label>
+      <label for="preset-select">Seniority preset</label>
       <select id="preset-select"></select>
+      <p id="preset-help" class="hint" style="margin-top:6px;min-height:1.4em"></p>
 
       <div class="row end">
         <button class="btn big" id="screen-btn">Screen with Jev</button>
@@ -520,6 +523,27 @@ function verdictOf(r) {
 function verdictLabel(v) {
   return { INTERVIEW: "Ready to interview", MAYBE: "Maybe", PASS: "Pass" }[v] || v;
 }
+/**
+ * Safe CSS class name for a recommendation badge.
+ * Never interpolate raw API values into class attributes — use this whitelist instead.
+ */
+const BADGE_SAFE_CLASS = { INTERVIEW: "INTERVIEW", MAYBE: "MAYBE", PASS: "PASS" };
+function badgeClass(v) { return BADGE_SAFE_CLASS[v] || "PASS"; }
+
+/* ------------------------------------------------------------------ auth */
+/** Token read from localStorage; sent as Authorization: Bearer on every API call. */
+let API_TOKEN_VALUE = localStorage.getItem("cv_screen_token") || "";
+/** Returns auth headers if a token is stored; empty object otherwise. */
+function authHeaders() {
+  return API_TOKEN_VALUE ? { "Authorization": "Bearer " + API_TOKEN_VALUE } : {};
+}
+/** Prompt for the token once if the server requires one and none is stored. */
+function ensureToken() {
+  if (!META || !META.hasToken) return; // server has no token configured
+  if (API_TOKEN_VALUE) return;
+  const t = (prompt("Enter CV_SCREEN_API_TOKEN to access the API:") || "").trim();
+  if (t) { API_TOKEN_VALUE = t; localStorage.setItem("cv_screen_token", t); }
+}
 /** A name from a filename usually arrives as "papadopoulos nikos"; make it readable. */
 function prettyName(s) {
   const t = String(s == null ? "" : s).trim();
@@ -530,7 +554,7 @@ function prettyName(s) {
 /* ------------------------------------------------------------------ data loading */
 async function tryFetch(url) {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: authHeaders() });
     if (!res.ok) return null;
     return await res.json();
   } catch (e) {
@@ -547,28 +571,21 @@ const MOCK_META = {
   hasKey: true,
   keySource: "mock",
   policy: {
-    id: "food-industry-qa", roleTitle: "Food industry (QA / R&D / production)", minExperienceYears: 3,
-    acceptedEducation: [
-      { key: "food_chemistry", label: "Chemistry, food specialisation", match: "Χημικός με κατεύθυνση Τροφίμων, Εφαρμοσμένη Χημεία (Τρόφιμα)." },
-      { key: "agronomy", label: "Agriculture / agronomy", match: "Γεωπόνος, Αγρονόμος, Γεωπονική." },
-      { key: "food_technology", label: "Food technology", match: "Τεχνολόγος Τροφίμων, Τεχνολογία Τροφίμων, Επιστήμη Τροφίμων." }
-    ],
+    id: "entry-level-job", roleTitle: "Entry level position", minExperienceYears: 1,
+    acceptedEducation: [],
     educationNoMatchKey: "other_not_accepted",
-    weights: { experience_years: 0.2, education: 0.2, food_sector: 0.2, age_over_28: 0.15, military: 0.1, stability: 0.15 },
-    caps: { educationNotAccepted: 0.5, noFoodSector: 0.55 },
+    weights: { experience_years: 0.20, education: 0, food_sector: 0, age_over_28: 0, military: 0, stability: 0.05 },
+    caps: { educationNotAccepted: 0.9, noFoodSector: 0.95 },
     unknownCredit: 0.47,
-    stability: { maxEmployers: 3, windowYears: 4 },
-    priorityKeywords: ["RnD", "R&D", "Research and Development"],
-    thresholds: { interview: 0.75, maybe: 0.5 },
-    review: { minConfidence: 0.6, borderlineLow: 0.35, borderlineHigh: 0.65 },
-    rejectingGates: ["education"],
-    age: { enabled: true, minAge: 28 },
-    military: { enabled: true, fullCreditIfNotApplicable: true, question: "What is this candidate's military service status?" },
-    sector: { enabled: true, label: "Food sector", question: "Has this candidate ever worked in the food sector?" },
-    extraFields: [
-      { id: "career_progression", label: "Career progression", help: "Whether the candidate has moved steadily upward, or changed jobs often without growing.", kind: "choice", mode: "weight", weight: 0.1, instructions: "How has this candidate's career progressed over time?", criteria: { steady_growth: "Steady growth in responsibility over time.", lateral_moves: "Mostly lateral moves between similar roles.", job_hopping: "Frequent short roles with no clear growth.", unclear: "Not enough information to tell." }, choiceValues: { steady_growth: 1, lateral_moves: 0.7, job_hopping: 0.35, unclear: 0.47 }, enabled: true, reviewWhen: { options: ["unclear"], yesnoAbove: 0.65 } },
-      { id: "technical_depth", label: "Hands-on technical depth", help: "How hands-on the candidate is with the actual technical work of the role.", kind: "score", mode: "weight", weight: 0.1, instructions: "Rate the candidate's hands-on technical depth in their field.", criteria: ["No hands-on technical work.", "Some hands-on work, mostly supervised.", "Comfortable working independently on technical tasks.", "Deep hands-on expertise, leads technical work."], enabled: true, reviewWhen: { options: [], yesnoAbove: 0.65 } }
-    ]
+    stability: { maxEmployers: 5, windowYears: 3 },
+    priorityKeywords: [],
+    thresholds: { interview: 0.65, maybe: 0.4 },
+    review: { minConfidence: 0.55, borderlineLow: 0.3, borderlineHigh: 0.65 },
+    rejectingGates: [],
+    age: { enabled: false, minAge: 18 },
+    military: { enabled: false, fullCreditIfNotApplicable: true, question: "" },
+    sector: { enabled: false, label: "the required sector", question: "" },
+    extraFields: []
   },
   fieldLibrary: [
     { id: "career_progression", label: "Career progression", help: "Whether the candidate has moved steadily upward, or changed jobs often without growing.", kind: "choice", mode: "weight", defaultWeight: 0.1, enabled: true, instructions: "How has this candidate's career progressed over time?", criteria: { steady_growth: "Steady growth in responsibility over time.", lateral_moves: "Mostly lateral moves between similar roles.", job_hopping: "Frequent short roles with no clear growth.", unclear: "Not enough information to tell." }, choiceValues: { steady_growth: 1, lateral_moves: 0.7, job_hopping: 0.35, unclear: 0.47 } },
@@ -678,9 +695,57 @@ const MOCK_CANDIDATES = [
 const MOCK_STATS = { candidates: 8, interview: 3, maybe: 3, pass: 2, needsReview: 3, avgMs: 2912, avgTokens: 3638, totalTokens: 29100, fields: [] };
 
 const MOCK_PRESETS = [
-  { id: "food-industry-qa", roleTitle: "Food industry (QA / R&D / production)", minExperienceYears: 3, acceptedEducation: [ { key: "food_chemistry", label: "Chemistry, food specialisation", match: "Χημικός με κατεύθυνση Τροφίμων." }, { key: "agronomy", label: "Agriculture / agronomy", match: "Γεωπόνος." }, { key: "food_technology", label: "Food technology", match: "Τεχνολόγος Τροφίμων." } ], educationNoMatchKey: "other_not_accepted", weights: { experience_years: 0.2, education: 0.2, food_sector: 0.2, age_over_28: 0.15, military: 0.1, stability: 0.15 }, caps: { educationNotAccepted: 0.5, noFoodSector: 0.55 }, unknownCredit: 0.47, stability: { maxEmployers: 3, windowYears: 4 }, priorityKeywords: ["RnD", "R&D"], thresholds: { interview: 0.75, maybe: 0.5 }, review: { minConfidence: 0.6, borderlineLow: 0.35, borderlineHigh: 0.65 }, rejectingGates: ["education"], age: { enabled: true, minAge: 28 }, military: { enabled: true, fullCreditIfNotApplicable: true, question: "" }, sector: { enabled: true, label: "Food sector", question: "" }, extraFields: [] },
-  { id: "office-admin", roleTitle: "Office administrator", minExperienceYears: 2, acceptedEducation: [ { key: "business_admin", label: "Business administration", match: "Πτυχίο Διοίκησης Επιχειρήσεων." }, { key: "secretarial", label: "Secretarial studies", match: "Γραμματειακή υποστήριξη." } ], educationNoMatchKey: "other_not_accepted", weights: { experience_years: 0.3, education: 0.15, food_sector: 0, age_over_28: 0, military: 0, stability: 0.2 }, caps: { educationNotAccepted: 0.5, noFoodSector: 0.55 }, unknownCredit: 0.47, stability: { maxEmployers: 3, windowYears: 4 }, priorityKeywords: [], thresholds: { interview: 0.7, maybe: 0.45 }, review: { minConfidence: 0.6, borderlineLow: 0.35, borderlineHigh: 0.65 }, rejectingGates: [], age: { enabled: false, minAge: 28 }, military: { enabled: false, fullCreditIfNotApplicable: true, question: "" }, sector: { enabled: false, label: "the required sector", question: "" }, extraFields: [] }
+  { id: "entry-level-job", label: "Entry level job", help: "First or second job: motivation and trajectory count most.", roleTitle: "Entry level position", minExperienceYears: 1, policy: null },
+  { id: "junior-level-job", label: "Junior level job", help: "1–3 years: independent work on defined tasks.", roleTitle: "Junior level position", minExperienceYears: 2, policy: null },
+  { id: "senior-level-job", label: "Senior level job", help: "5–8+ years: owns systems and architectural decisions.", roleTitle: "Senior level position", minExperienceYears: 5, policy: null },
+  { id: "ceo-level-job", label: "CEO / C-suite level job", help: "10+ years: org-level leadership and external communication.", roleTitle: "CEO / C-suite position", minExperienceYears: 10, policy: null }
 ];
+// Attach slim policies so mock preset switching still updates Settings.
+const MOCK_WEIGHTS = {
+  "entry-level-job":  { experience_years: 0.20, stability: 0.05 },
+  "junior-level-job": { experience_years: 0.25, stability: 0.15 },
+  "senior-level-job": { experience_years: 0.15, stability: 0.20 },
+  "ceo-level-job":    { experience_years: 0.10, stability: 0.15 }
+};
+const MOCK_EXTRAS = {
+  "entry-level-job": [
+    { id: "motivation_fit", label: "Direction of the CV", kind: "choice", mode: "weight", weight: 0.30, enabled: true },
+    { id: "technical_depth", label: "Hands-on depth", kind: "score", mode: "weight", weight: 0.25, enabled: true },
+    { id: "communication", label: "Communication", kind: "score", mode: "weight", weight: 0.15, enabled: true },
+    { id: "career_progression", label: "Career trajectory", kind: "choice", mode: "weight", weight: 0.10, enabled: true }
+  ],
+  "junior-level-job": [
+    { id: "technical_depth", label: "Hands-on depth", kind: "score", mode: "weight", weight: 0.35, enabled: true },
+    { id: "career_progression", label: "Career progression", kind: "choice", mode: "weight", weight: 0.20, enabled: true },
+    { id: "motivation_fit", label: "Direction of the CV", kind: "choice", mode: "weight", weight: 0.15, enabled: true }
+  ],
+  "senior-level-job": [
+    { id: "technical_depth", label: "Hands-on depth", kind: "score", mode: "weight", weight: 0.35, enabled: true },
+    { id: "ownership_leadership", label: "Ownership and leadership", kind: "score", mode: "weight", weight: 0.25, enabled: true },
+    { id: "career_progression", label: "Career progression", kind: "choice", mode: "weight", weight: 0.15, enabled: true }
+  ],
+  "ceo-level-job": [
+    { id: "ownership_leadership", label: "Org-level leadership scope", kind: "score", mode: "weight", weight: 0.45, enabled: true },
+    { id: "communication", label: "External communication", kind: "score", mode: "weight", weight: 0.20, enabled: true },
+    { id: "career_progression", label: "Executive trajectory", kind: "choice", mode: "weight", weight: 0.20, enabled: true }
+  ]
+};
+MOCK_PRESETS.forEach((p) => {
+  const mw = MOCK_WEIGHTS[p.id] || { experience_years: 0.2, stability: 0.1 };
+  p.policy = {
+    id: p.id, roleTitle: p.roleTitle, minExperienceYears: p.minExperienceYears,
+    acceptedEducation: [], educationNoMatchKey: "other_not_accepted",
+    weights: { experience_years: mw.experience_years, education: 0, food_sector: 0, age_over_28: 0, military: 0, stability: mw.stability },
+    caps: { educationNotAccepted: 0.9, noFoodSector: 0.95 }, unknownCredit: 0.47,
+    stability: { maxEmployers: 4, windowYears: 4 }, priorityKeywords: [],
+    thresholds: { interview: 0.7, maybe: 0.45 },
+    review: { minConfidence: 0.6, borderlineLow: 0.3, borderlineHigh: 0.65 },
+    rejectingGates: [], age: { enabled: false, minAge: 18 },
+    military: { enabled: false, fullCreditIfNotApplicable: true, question: "" },
+    sector: { enabled: false, label: "the required sector", question: "" },
+    extraFields: JSON.parse(JSON.stringify(MOCK_EXTRAS[p.id] || []))
+  };
+});
 
 /* Mock batch stream: array of SSE event objects, replayed with a small delay. */
 const MOCK_BATCH = [
@@ -702,6 +767,7 @@ async function loadData() {
     MODE = "api";
     META = meta;
     POLICY = normPolicy(JSON.parse(JSON.stringify(meta.policy)));
+    ensureToken(); // prompt once if the server requires a token and none is stored
     const presets = await tryFetch("/api/presets");
     PRESETS = Array.isArray(presets) ? presets : (presets && presets.presets) || [];
     const cand = await tryFetch("/api/candidates");
@@ -854,24 +920,32 @@ $("dropzone").addEventListener("drop", (e) => {
 function populatePresets() {
   const sel = $("preset-select");
   sel.innerHTML = "";
-  if (!PRESETS.length) {
-    const o = document.createElement("option");
-    o.value = ""; o.textContent = "Current role";
-    sel.appendChild(o);
-    return;
-  }
   const cur = document.createElement("option");
-  cur.value = ""; cur.textContent = "Current role";
+  cur.value = ""; cur.textContent = "Current role (unchanged)";
   sel.appendChild(cur);
+  if (!PRESETS.length) return;
   PRESETS.forEach((p) => {
     const o = document.createElement("option");
-    o.value = p.id; o.textContent = p.roleTitle;
+    o.value = p.id;
+    // API: { id, label, help, policy }; mock may use roleTitle.
+    o.textContent = p.label || p.roleTitle || p.id;
     sel.appendChild(o);
   });
 }
+
 $("preset-select").addEventListener("change", (e) => {
-  const p = PRESETS.find((x) => x.id === e.target.value);
-  if (p) { POLICY = normPolicy(JSON.parse(JSON.stringify(p))); renderSettings(); updateStats(); }
+  const id = e.target.value;
+  $("preset-help").textContent = "";
+  if (!id) return;
+  const p = PRESETS.find((x) => x.id === id);
+  if (!p) return;
+  $("preset-help").textContent = p.help || "";
+  // In API mode the server embeds the full policy under p.policy.
+  // In mock mode the preset object itself IS the policy (legacy shape).
+  const src = p.policy != null ? p.policy : p;
+  POLICY = normPolicy(JSON.parse(JSON.stringify(src)));
+  renderSettings();
+  updateStats();
 });
 
 function readFileAsBase64(file) {
@@ -899,7 +973,7 @@ function addBatchRow(row) {
   el.innerHTML =
     '<span class="nm">' + esc(prettyName(row.name) || row.sourceFile) + "</span>" +
     '<span class="sc">' + (row.score != null ? row.score.toFixed(3) : "-") + "</span>" +
-    '<span class="badge ' + v + '">' + esc(verdictLabel(v)) + "</span>" +
+    '<span class="badge ' + badgeClass(v) + '">' + esc(verdictLabel(v)) + "</span>" +
     (row.needsReview ? '<span class="marker">review</span>' : "") +
     (row.stale ? '<span class="stale">stale</span>' : "");
   el.addEventListener("click", () => openDetail(row.id));
@@ -935,7 +1009,7 @@ function updateBatchProgress(ev) {
 }
 
 async function streamBatch(jobId) {
-  const res = await fetch("/api/batch/stream?jobId=" + encodeURIComponent(jobId));
+  const res = await fetch("/api/batch/stream?jobId=" + encodeURIComponent(jobId), { headers: authHeaders() });
   if (!res.ok || !res.body) throw new Error("stream failed");
   const reader = res.body.getReader();
   const dec = new TextDecoder();
@@ -1044,7 +1118,7 @@ async function runBatch() {
   // appear while the rest are still uploading.
   const concurrency = (META.limits && META.limits.defaultConcurrency) || 8;
   const start = await fetch("/api/batch", {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ concurrency, total: items.length, reset: true }),
   });
   const started = await start.json();
@@ -1061,7 +1135,7 @@ async function runBatch() {
       else files.push({ name: f.name, text: await readFileAsText(f.file) });
     }
     const res = await fetch("/api/batch/chunk", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ jobId: started.jobId, files }),
     });
     const data = await res.json();
@@ -1070,7 +1144,7 @@ async function runBatch() {
     $("screen-status").textContent = "sending " + Math.min(i + CHUNK, items.length) + " of " + items.length + " CVs...";
   }
   await fetch("/api/batch/finish", {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ jobId: started.jobId }),
   });
   await streamPromise;
@@ -1081,7 +1155,7 @@ async function runSingle() {
   if (!cvText) { $("screen-status").textContent = "Paste a CV first, or choose files."; return; }
   $("screen-status").innerHTML = '<span class="spin"></span> asking Jev...';
   const res = await fetch("/api/screen", {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ cvText, name: "", email: "", reset: true }),
   });
   const data = await res.json();
@@ -1231,7 +1305,7 @@ function renderCandidates() {
       "<td>" + esc(prettyName(r.name) || r.sourceFile) + (r.stale ? ' <span class="stale">stale</span>' : "") + "</td>" +
       "<td>" + esc(r.sourceFile || "-") + "</td>" +
       '<td class="num">' + (r.score != null ? r.score.toFixed(3) : "-") + "</td>" +
-      '<td><span class="badge ' + v + '">' + esc(verdictLabel(v)) + "</span></td>" +
+      '<td><span class="badge ' + badgeClass(v) + '">' + esc(verdictLabel(v)) + "</span></td>" +
       '<td>' + (r.needsReview ? '<span class="marker">&#9679; review</span>' : "") + "</td>" +
       dimCells +
       "</tr>";
@@ -1292,7 +1366,7 @@ $("cand-clear").addEventListener("click", async () => {
   btn.textContent = "Clearing...";
   try {
     if (MODE === "api") {
-      const res = await fetch("/api/candidates?confirm=yes", { method: "DELETE" });
+      const res = await fetch("/api/candidates?confirm=yes", { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
     }
@@ -1311,9 +1385,20 @@ $("cand-clear").addEventListener("click", async () => {
   }
 });
 
-$("cand-export").addEventListener("click", () => {
+$("cand-export").addEventListener("click", async () => {
   if (MODE === "api") {
-    window.location.href = "/api/export.csv";
+    try {
+      const r = await fetch("/api/export.csv", { headers: authHeaders() });
+      if (!r.ok) { alert("Export failed: " + r.status); return; }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "jev-candidates-" + new Date().toISOString().slice(0, 10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    } catch (err) { alert("Export failed: " + err); }
     return;
   }
   // Offline: build the CSV locally (with a BOM so Greek text opens right in Excel).
@@ -1510,7 +1595,7 @@ function renderDetail(panel, row, answers, questions) {
     '<div class="detail-head">' +
       '<div><div class="big">' + (row.score != null ? row.score.toFixed(3) : "-") + "</div>" +
         '<div class="sub">' + esc(row.name || row.sourceFile) + (row.email ? " · " + esc(row.email) : "") + "</div></div>" +
-      '<div class="badge ' + v + '">' + esc(verdictLabel(v)) + "</div>" +
+      '<div class="badge ' + badgeClass(v) + '">' + esc(verdictLabel(v)) + "</div>" +
       '<div class="sub" style="margin:0 0 0 auto;text-align:right">' +
         esc(row.model || "") + "<br>" + fmtNum(row.tokens) + " tokens · " + fmtNum(row.elapsedMs) + " ms<br>" + esc(row.sourceFile || "") +
       "</div>" +
@@ -1549,23 +1634,38 @@ function renderSettings() {
     });
   });
 
-  // weights
+  // weights — core dimensions, then every enabled extra field that actually scores
   const w = POLICY.weights || {};
   const coreLabels = {
-    experience_years: "Experience", education: "Education", food_sector: "Food sector",
+    experience_years: "Experience", education: "Education",
     age_over_28: "Age over 28", military: "Military service", stability: "Job stability"
   };
   const wEl = $("set-weights");
-  wEl.innerHTML = Object.keys(coreLabels).map((id) => {
+  const coreRows = Object.keys(coreLabels).map((id) => {
     const val = w[id] || 0;
     return '<div class="weight-row"><span class="lbl">' + esc(coreLabels[id]) + "</span>" +
       '<input type="range" min="0" max="1" step="0.01" value="' + val + '" data-w="' + id + '" />' +
-      '<span class="wv">' + val.toFixed(2) + "</span></div>";
-  }).join("");
+      '<span class="wv">' + Number(val).toFixed(2) + "</span></div>";
+  });
+  const extraRows = (POLICY.extraFields || [])
+    .map((f, idx) => ({ f, idx }))
+    .filter(({ f }) => f.enabled && (f.mode || "weight") === "weight")
+    .map(({ f, idx }) => {
+      const val = Number(f.weight) || 0;
+      return '<div class="weight-row"><span class="lbl">' + esc(f.label || f.id) + "</span>" +
+        '<input type="range" min="0" max="1" step="0.01" value="' + val + '" data-extra="' + idx + '" />' +
+        '<span class="wv">' + val.toFixed(2) + "</span></div>";
+    });
+  wEl.innerHTML = coreRows.concat(extraRows).join("");
   wEl.querySelectorAll("input[type=range]").forEach((r) => {
     r.addEventListener("input", () => {
-      POLICY.weights[r.dataset.w] = Number(r.value);
-      r.parentElement.querySelector(".wv").textContent = Number(r.value).toFixed(2);
+      const v = Number(r.value);
+      if (r.dataset.w) POLICY.weights[r.dataset.w] = v;
+      if (r.dataset.extra != null) {
+        const f = POLICY.extraFields[Number(r.dataset.extra)];
+        if (f) f.weight = v;
+      }
+      r.parentElement.querySelector(".wv").textContent = v.toFixed(2);
     });
   });
 
@@ -1810,7 +1910,7 @@ $("save-btn").addEventListener("click", async () => {
     let resp;
     if (MODE === "api") {
       const res = await fetch("/api/policy", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT", headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ policy: POLICY }),
       });
       resp = await res.json();
@@ -1857,7 +1957,7 @@ $("rescan-btn").addEventListener("click", async () => {
   try {
     if (MODE === "api") {
       const res = await fetch("/api/rescan", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ only: "stale" }),
       });
       const data = await res.json();
