@@ -383,3 +383,7 @@ to look when the final score is also sitting within 0.05 of a decision line.
   exports, the generator that produced them and the plain JS port of the old policy have all been
   removed, because the policy became editable at runtime and a frozen port cannot express that. What
   is in this repository is the whole project.
+
+## License
+
+MIT. See `LICENSE` in the repository root.

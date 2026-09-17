@@ -2,6 +2,7 @@
   "name": "typesafe-cv-screen",
   "version": "0.2.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Jev (TypeSafe System One) CV screening: a folder of hundreds of CVs judged once, then re-scored in milliseconds whenever the policy changes.",
   "engines": {
