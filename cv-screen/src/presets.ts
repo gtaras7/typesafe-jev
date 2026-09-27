@@ -188,7 +188,7 @@ export const PRESETS: Preset[] = [
   {
     id: "junior-level-job",
     label: "Junior level job",
-    help: "1–3 years: can work independently on defined tasks. Technical depth at the 'owns features' level is the target. Career direction and progression matter. Interview line set at 0.72.",
+    help: "1–3 years: can work independently on defined tasks. Technical depth at the 'owns features' level is the target. Direction of the CV matters most after depth. Interview line set at 0.72.",
     policy: normalisePolicy({
       id: "junior-level-job",
       roleTitle: "Junior level position",
@@ -274,13 +274,15 @@ export const PRESETS: Preset[] = [
           enabled: true,
         },
         // Career shape: consistent direction and at least steady responsibility.
+        // Real-world runs show steady_growth for nearly every candidate, so this
+        // dimension rarely discriminates; it stays as a small guard, not a driver.
         {
           id: "career_progression",
           label: "Career progression",
           help: "Whether each step connects to the last and responsibility is at least steady.",
           kind: "choice",
           mode: "weight",
-          weight: 0.20,
+          weight: 0.05,
           instructions:
             "How has this candidate's career moved over time? For a junior hire, judge whether each step connects to the last and whether responsibility is at least steady, if not growing. A first job with no hops and a clear technical direction is the minimum bar. Ignore gaps explained by study, parental leave, or military service. When the shape is ambiguous, choose unclear.",
           criteria: {
@@ -297,13 +299,15 @@ export const PRESETS: Preset[] = [
           enabled: true,
         },
         // Motivation: does the CV point at this kind of work?
+        // The strongest separator on real sample sets: wrong direction must be
+        // able to drag a technically strong candidate down out of interview.
         {
           id: "motivation_fit",
           label: "Direction of the CV",
           help: "Whether the CV is aimed at this kind of role.",
           kind: "choice",
           mode: "weight",
-          weight: 0.15,
+          weight: 0.30,
           instructions:
             "Setting aside seniority, does the direction of this CV point at the work being hired for? For a junior hire, judge whether the technical choices, projects, and employers build toward this kind of role. Ignore any stated wish to work here unless the history supports it.",
           criteria: {
