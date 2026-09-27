@@ -3,7 +3,7 @@
  * export can never disagree about what a candidate is.
  */
 
-import type { StoredRun } from "./store.js";
+import type { SlimStored, StoredRun } from "./store.js";
 import { parseJson } from "./store.js";
 import type { ScreenResult, DimensionResult } from "./compose.js";
 import { costUsd } from "./pricing.js";
@@ -39,7 +39,7 @@ export interface ApiRow {
   roleTitle: string;
 }
 
-export function rowFromStored(run: StoredRun): ApiRow {
+export function rowFromStored(run: StoredRun | SlimStored): ApiRow {
   const result = parseJson<ScreenResult | null>(run.result_json || "null", null);
   const fields = parseJson<Record<string, string>>(run.fields_json || "{}", {});
   return {

@@ -111,6 +111,40 @@ const ADDED_COLUMNS: Array<[string, string]> = [
   ["priority_p", "REAL NOT NULL DEFAULT 0"],
 ];
 
+/**
+ * The columns the candidates table reads. Everything the detail view, the CSV and the
+ * recompose pass need (cv_text, answers, questions, the full policy) stays out of the
+ * SELECT, so a folder of 300 CVs no longer drags tens of megabytes out of sqlite just
+ * to paint a sortable list.
+ */
+export type SlimStored = Pick<
+  StoredRun,
+  | "id"
+  | "created_at"
+  | "candidate_name"
+  | "candidate_email"
+  | "source_file"
+  | "cv_chars"
+  | "composite"
+  | "raw_composite"
+  | "capped"
+  | "recommendation"
+  | "priority"
+  | "priority_p"
+  | "education_ok"
+  | "food_sector_ok"
+  | "stability_red_flag"
+  | "needs_review"
+  | "needs_rescan"
+  | "review_reasons"
+  | "fields_json"
+  | "model"
+  | "input_tokens"
+  | "output_tokens"
+  | "elapsed_ms"
+  | "result_json"
+>;
+
 export interface SaveRunInput {
   policyId: string;
   policy: unknown;
@@ -166,6 +200,15 @@ export class RunStore {
     this.pdfDir = join(dirname(path), "files");
     mkdirSync(this.pdfDir, { recursive: true });
     this.db = new DatabaseSync(path);
+    // A batch writes hundreds of rows in one run, and the default rollback journal
+    // fsyncs the whole file on every commit. WAL turns those into journaled appends
+    // (synchronous=NORMAL skips the per-commit fsync), which is the difference between
+    // a slow folder scan and a fast one. journal_mode is persistent on the
+    // database file, so this also heals stores created before the switch. busy_timeout
+    // keeps the SSE reader from ever failing a write with SQLITE_BUSY.
+    this.db.exec("PRAGMA journal_mode = WAL");
+    this.db.exec("PRAGMA synchronous = NORMAL");
+    this.db.exec("PRAGMA busy_timeout = 5000");
     this.migrate();
   }
 
@@ -324,6 +367,24 @@ export class RunStore {
     return this.db
       .prepare("SELECT * FROM runs ORDER BY composite DESC, id ASC LIMIT ?")
       .all(limit) as unknown as StoredRun[];
+  }
+
+  /**
+   * The shortlist as the table sees it: the scored columns and the parsed result, but
+   * not the CV text or the raw request blobs. Same order as `all` so the header and the
+   * details keep agreeing about who is on top.
+   */
+  slim(limit = 2000): SlimStored[] {
+    return this.db
+      .prepare(
+        `SELECT id, created_at, candidate_name, candidate_email, source_file, cv_chars,
+                composite, raw_composite, capped, recommendation, priority, priority_p,
+                education_ok, food_sector_ok, stability_red_flag, needs_review,
+                needs_rescan, review_reasons, fields_json, model, input_tokens,
+                output_tokens, elapsed_ms, result_json
+         FROM runs ORDER BY composite DESC, id ASC LIMIT ?`,
+      )
+      .all(limit) as unknown as SlimStored[];
   }
 
   get(id: number): StoredRun | undefined {

@@ -351,6 +351,7 @@
         <input type="text" id="cand-search" placeholder="Search by name or file..." />
         <div class="chips" id="cand-filters"></div>
         <div style="flex:1"></div>
+        <span class="hint" id="cand-count"></span>
         <button class="btn ghost" id="cand-export">Export to Excel (CSV)</button>
         <button class="btn ghost danger" id="cand-clear" title="Remove every candidate in this shortlist">Clear</button>
       </div>
@@ -466,11 +467,14 @@ let STATS = null;            // candidates stats
 let SELECTED_FILES = [];     // {name, size, file?, text?}
 let FILTER = "all";
 let SEARCH = "";
+let SEARCH_TIMER = null;
 let SORT = { key: "score", dir: -1 };
 let DETAIL_ID = null;
 let BATCH_RUNNING = false;
 /** The run in progress or just finished, so the header can report its own speed. */
 let RUN = null;
+/** How many candidate rows the table keeps in the DOM at once; sorting still covers everyone. */
+const MAX_TABLE_ROWS = 200;
 
 /* ------------------------------------------------------------------ helpers */
 function esc(s) {
@@ -1288,6 +1292,20 @@ function renderCandidates() {
     return SORT.dir * (av - bv);
   });
 
+  // A folder of hundreds renders as a sortable table; the DOM does not need all of it
+  // at once. The cap applies after sorting, so what stays on screen is always the top
+  // of the current order, and the toolbar says how many are being hidden.
+  const MATCHED = rows.length;
+  const shown = Math.min(MATCHED, MAX_TABLE_ROWS);
+  rows = rows.slice(0, shown);
+  const countEl = $("cand-count");
+  if (MATCHED === CANDIDATES.length) {
+    countEl.textContent = shown < MATCHED ? shown.toLocaleString() + " of " + MATCHED.toLocaleString() : "";
+  } else {
+    countEl.textContent = (shown < MATCHED ? shown.toLocaleString() + " of " : "") + MATCHED.toLocaleString() +
+      " (filtered from " + CANDIDATES.length.toLocaleString() + ")";
+  }
+
   const tbody = $("cand-tbody");
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="' + (5 + cols.length) + '" class="empty">No candidates match.</td></tr>';
@@ -1330,7 +1348,12 @@ function renderFilters() {
     b.addEventListener("click", () => { FILTER = b.dataset.filter; renderFilters(); renderCandidates(); });
   });
 }
-$("cand-search").addEventListener("input", (e) => { SEARCH = e.target.value.trim(); renderCandidates(); });
+$("cand-search").addEventListener("input", (e) => {
+  // Rebuilding the whole table on every keystroke is the laggiest thing a 300-CV
+  // shortlist can do; 150ms of patience turns a burst of typing into one render.
+  clearTimeout(SEARCH_TIMER);
+  SEARCH_TIMER = setTimeout(() => { SEARCH = e.target.value.trim(); renderCandidates(); }, 150);
+});
 
 /**
  * Clearing throws away every stored judgment, so it asks first. It asks with a second click

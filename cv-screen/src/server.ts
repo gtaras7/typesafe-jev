@@ -319,7 +319,12 @@ const server = createServer(async (req, res) => {
     /* -------------------------------------------------------------- candidates */
     if (req.method === "GET" && path === "/api/candidates") {
       if (!requireAuth(req, res)) return;
-      const rows = store.all().map(rowFromStored);
+      // The slim query: the table only ever reads the scored columns and the parsed
+      // result, and the detail panel fetches /api/candidates/:id for everything else.
+      // Reading cv_text (up to 120k chars each) and the raw request blobs for every
+      // row made a 300-CV shortlist weigh tens of megabytes before the browser saw a
+      // single cell.
+      const rows = store.slim().map(rowFromStored);
       json(res, 200, { rows, stats: statsFor(policy, rows), columns: columnMeta(policy) });
       return;
     }
