@@ -312,6 +312,8 @@
   }
   #save-result { font-size: 13px; color: var(--good); }
   #save-result.err { color: var(--bad); }
+  #dirty-pill { font-size: 12px; color: var(--warn); display: none; }
+  #dirty-pill.visible { display: inline; }
   .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -2px; }
   @keyframes sp { to { transform: rotate(360deg); } }
   .empty { color: var(--dim); font-size: 13.5px; padding: 8px 0; }
@@ -504,6 +506,7 @@
     <div class="settings-footer">
       <button class="btn" id="save-btn">Save and re-score</button>
       <button class="btn ghost" id="rescan-btn" style="display:none">Re-scan candidates</button>
+      <span id="dirty-pill">&#9888; unsaved changes — screening uses the saved policy</span>
       <span id="save-result"></span>
     </div>
   </section>
@@ -529,6 +532,19 @@ let DETAIL_ID = null;
 let BATCH_RUNNING = false;
 /** The run in progress or just finished, so the header can report its own speed. */
 let RUN = null;
+/** Snapshot of the policy the server last accepted; screening uses the saved policy,
+    not these in-browser edits, so the two must never be allowed to drift silently. */
+let SAVED_POLICY_JSON = "";
+function policyDirty() {
+  return SAVED_POLICY_JSON !== "" && JSON.stringify(POLICY) !== SAVED_POLICY_JSON;
+}
+function updateDirtyPill() {
+  $("dirty-pill").classList.toggle("visible", policyDirty());
+}
+// Any settings edit marks the policy dirty; capture-phase listeners catch every
+// slider, toggle, chip and input in the settings panel without wiring each control.
+$("panel-settings").addEventListener("input", updateDirtyPill, true);
+$("panel-settings").addEventListener("change", updateDirtyPill, true);
 /** How many candidate rows the table keeps in the DOM at once; sorting still covers everyone. */
 const MAX_TABLE_ROWS = 200;
 
@@ -846,6 +862,8 @@ async function loadData() {
   // Offline mode shows itself on the role line rather than in its own badge, and refresh the
   // header from the demo data (loadData's caller also calls updateStats, once).
   if (MODE === "mock") updateStats();
+  SAVED_POLICY_JSON = JSON.stringify(POLICY);
+  updateDirtyPill();
 }
 
 /* ------------------------------------------------------------------ header */
@@ -1006,6 +1024,7 @@ $("preset-select").addEventListener("change", (e) => {
   POLICY = normPolicy(JSON.parse(JSON.stringify(src)));
   renderSettings();
   updateStats();
+  updateDirtyPill();
 });
 
 function readFileAsBase64(file) {
@@ -1247,6 +1266,12 @@ async function runBatch() {
 
 $("screen-btn").addEventListener("click", async () => {
   if (BATCH_RUNNING) return;
+  // Screening judges with the SAVED policy. If edits are still in the panel, stop here
+  // instead of silently scoring against the old one (the #1 source of "wrong" verdicts).
+  if (policyDirty()) {
+    $("screen-status").textContent = "You have unsaved policy changes. Save and re-score first — screening uses the saved policy.";
+    return;
+  }
   const hasFiles = SELECTED_FILES.length > 0;
   const hasPaste = $("paste-text").value.trim().length > 0;
   if (!hasFiles && !hasPaste) { $("screen-status").textContent = "Choose files or paste a CV first."; return; }
@@ -2046,6 +2071,8 @@ $("save-btn").addEventListener("click", async () => {
       btn.style.display = "none";
     }
     updateStats();
+    SAVED_POLICY_JSON = JSON.stringify(POLICY);
+    updateDirtyPill();
   } catch (err) {
     $("save-result").textContent = String(err);
     $("save-result").className = "err";
