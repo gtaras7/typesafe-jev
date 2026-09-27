@@ -17,7 +17,7 @@ import { basename, join, resolve, sep } from "node:path";
 import { RunStore } from "./store.js";
 import { screenCv } from "./screen.js";
 import { bestName, emailFromText, extractAny, extractPdfFile, extractPdfFiles } from "./pdf.js";
-import { rowFromStored, type ApiRow } from "./rows.js";
+import { rowFromStored, slimProgressRow, type ApiRow } from "./rows.js";
 import type { Policy } from "./policy.js";
 
 export interface Task {
@@ -180,6 +180,17 @@ export class Job {
     });
     this.subs.add(res);
     const write = (event: unknown) => res.write(`data: ${JSON.stringify(event)}\n\n`);
+    // Keep the connection alive through silent proxies: a comment frame every 15s makes
+    // a dead socket visible to the client's watchdog within a minute instead of hanging
+    // the progress bar until the browser's own timeout.
+    const ping = setInterval(() => {
+      try {
+        res.write(": ping\n\n");
+      } catch {
+        clearInterval(ping);
+      }
+    }, 15_000);
+    ping.unref?.();
     write({
       type: "job",
       jobId: this.id,
@@ -195,7 +206,10 @@ export class Job {
       this.subs.delete(res);
       return;
     }
-    res.on("close", () => this.subs.delete(res));
+    res.on("close", () => {
+      clearInterval(ping);
+      this.subs.delete(res);
+    });
   }
 
   private send(event: unknown) {
@@ -238,7 +252,7 @@ export class Job {
         ms: Date.now() - this.startedAt,
         current: task.name,
         averageMs: average(this.latencies),
-        row,
+        row: slimProgressRow(row),
       };
       this.send(this.lastProgress);
     } catch (err) {

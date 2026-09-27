@@ -17,7 +17,33 @@
     --bad: #ff6b6b;
     --accent: #7c8cff;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    --track: #232833;
+    --rowline: #1e232c;
+    --selbg: #1a2130;
+    --prebg: #0b0d11;
+    --preink: #c7cede;
     color-scheme: dark;
+  }
+  /* The dark palette above, flipped for light backgrounds. Shared surfaces use the
+     vars so one block flips the whole app; the badge and note chips stay dark in both
+     themes because light text on a saturated dark chip reads well anywhere. */
+  html[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --panel2: #eef0f4;
+    --line: #d8dce4;
+    --ink: #1c2430;
+    --dim: #5d6873;
+    --good: #2f9e66;
+    --warn: #d99a24;
+    --bad: #d9534f;
+    --accent: #5b6bff;
+    --track: #e3e6ec;
+    --rowline: #e3e6ec;
+    --selbg: #e7ebf6;
+    --prebg: #f0f2f6;
+    --preink: #2a3342;
+    color-scheme: light;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -54,6 +80,26 @@
   .dot.maybe { background: var(--warn); }
   .dot.pass { background: var(--bad); }
   .dot.review { background: var(--accent); }
+  /* The run-level numbers (speed, tokens, cost, model) fold into a dropdown so the
+     at-a-glance row stays five verdicts plus a scope label. During a run the live
+     numbers sit in the batch progress block anyway. */
+  details.perf { margin: 0; }
+  details.perf summary {
+    list-style: none; cursor: pointer; user-select: none;
+    color: var(--dim); font-size: 12px; border: 1px solid var(--line);
+    border-radius: 8px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  details.perf summary::-webkit-details-marker { display: none; }
+  details.perf summary::after { content: "▾"; font-size: 9px; }
+  details.perf[open] summary::after { content: "▴"; font-size: 9px; }
+  details.perf .perf-stats {
+    position: absolute; right: 0; top: 100%; z-index: 30;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; box-shadow: 0 8px 20px rgba(0, 0, 0, .35);
+    display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--dim);
+  }
+  details.perf .perf-stats .stat { background: transparent; border: 0; }
+  details.perf[open] { position: relative; }
 
   /* ---------- tabs ---------- */
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
@@ -99,14 +145,14 @@
   #file-summary b { color: var(--ink); }
 
   .progress-wrap { margin-top: 16px; }
-  .progress-track { height: 10px; border-radius: 6px; background: #232833; overflow: hidden; }
+  .progress-track { height: 10px; border-radius: 6px; background: var(--track); overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .2s; }
   .progress-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; color: var(--dim); }
   .progress-meta b { color: var(--ink); font-family: var(--mono); }
 
   .batch-results { margin-top: 12px; max-height: 320px; overflow: auto; }
   .batch-row {
-    display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-bottom: 1px solid #1e232c;
+    display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-bottom: 1px solid var(--rowline);
     font-size: 13px; cursor: pointer;
   }
   .batch-row:hover { background: var(--panel2); }
@@ -138,13 +184,17 @@
   }
   thead th:hover { color: var(--ink); }
   thead th .arrow { color: var(--accent); }
-  tbody td { padding: 8px 10px; border-bottom: 1px solid #1e232c; white-space: nowrap; }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid var(--rowline); white-space: nowrap; }
   tbody tr { cursor: pointer; }
   tbody tr:hover { background: var(--panel2); }
-  tbody tr.selected { background: #1a2130; }
+  tbody tr.selected { background: var(--selbg); }
+  /* A row is a click target for mouse users; make it one for keyboards too. */
+  tbody tr[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  /* Long filenames and names truncate with an ellipsis instead of stretching the column. */
+  .td-ellipsis { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
   td.num { font-family: var(--mono); text-align: right; }
   td.dim { text-align: center; }
-  .mini { width: 34px; height: 5px; border-radius: 3px; background: #232833; overflow: hidden; display: inline-block; vertical-align: middle; }
+  .mini { width: 34px; height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; display: inline-block; vertical-align: middle; }
   .mini i { display: block; height: 100%; }
   .g-green { background: var(--good); } .g-amber { background: var(--warn); } .g-red { background: var(--bad); } .g-accent { background: var(--accent); }
   .marker { color: var(--accent); font-size: 12px; }
@@ -158,16 +208,16 @@
   /* The bars in the detail panel. The fill MUST be display: block: as an inline span it
      silently ignored both its width and its height, so every bar rendered empty no matter
      what the value was. */
-  .dim-bar { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1e232c; }
+  .dim-bar { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--rowline); }
   .dim-bar .lbl { width: 190px; font-size: 13px; }
-  .dim-bar .track { position: relative; flex: 1; max-width: 260px; height: 8px; border-radius: 4px; background: #232833; overflow: hidden; }
+  .dim-bar .track { position: relative; flex: 1; max-width: 260px; height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
   .dim-bar .track::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #333a48; }
   .dim-bar .fill { display: block; height: 100%; border-radius: 4px; }
   .dim-bar .val { font-family: var(--mono); font-size: 12px; width: 52px; text-align: right; color: var(--dim); }
   .dim-bar .basis { flex: 1; color: var(--dim); font-size: 12px; }
 
   /* ---------- what we asked and what Jev answered ---------- */
-  .pw { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(260px, 1.1fr) 110px; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px solid #1e232c; }
+  .pw { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(260px, 1.1fr) 110px; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px solid var(--rowline); }
   @media (max-width: 900px) { .pw { grid-template-columns: 1fr; } }
   .pw-key { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
   .pw-q { color: var(--dim); font-size: 12px; line-height: 1.45; margin-top: 5px; }
@@ -180,7 +230,7 @@
   .pw-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; color: var(--dim); font-size: 12px; }
   .pw-row.top { color: var(--ink); }
   .pw-row .pw-k { width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pw-row .pw-bar { display: block; flex: 1; max-width: 150px; height: 5px; border-radius: 3px; background: #232833; overflow: hidden; }
+  .pw-row .pw-bar { display: block; flex: 1; max-width: 150px; height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
   .pw-row .pw-bar i { display: block; height: 100%; border-radius: 3px; background: #4a5262; }
   .pw-row.top .pw-bar i { background: var(--accent); }
   .pw-row .pw-pc { font-family: var(--mono); font-size: 11.5px; width: 38px; text-align: right; }
@@ -197,12 +247,12 @@
   .note { border-left: 3px solid var(--warn); background: #1d1a12; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 13px; }
   .note.err { border-color: var(--bad); background: #1d1212; }
   .note.soft { border-color: var(--accent); background: #16181f; }
-  .qa { margin-top: 6px; padding: 8px 0; border-bottom: 1px solid #1e232c; }
+  .qa { margin-top: 6px; padding: 8px 0; border-bottom: 1px solid var(--rowline); }
   .qa .q { color: var(--dim); font-size: 12.5px; }
   .qa .a { font-family: var(--mono); font-size: 12px; margin-top: 3px; color: var(--ink); }
   details { margin-top: 12px; }
   summary { cursor: pointer; color: var(--dim); font-size: 12.5px; }
-  pre { background: #0b0d11; border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; max-height: 320px; font-family: var(--mono); font-size: 11.5px; color: #c7cede; }
+  pre { background: var(--prebg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; max-height: 320px; font-family: var(--mono); font-size: 11.5px; color: var(--preink); }
 
   /* ---------- settings tab ---------- */
   .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -226,7 +276,7 @@
   ::-webkit-scrollbar-corner { background: transparent; }
   .weight-row input[type=range] { flex: 1; }
   .weight-row .wv { font-family: var(--mono); font-size: 12px; width: 40px; text-align: right; color: var(--dim); }
-  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1e232c; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rowline); }
   .toggle-row .lbl { flex: 1; font-size: 13.5px; }
   .toggle-row .hint { font-size: 12px; }
   .switch { position: relative; width: 40px; height: 22px; flex: none; }
@@ -274,6 +324,7 @@
     <div class="brand-row">
       <h1>Jev CV Screening</h1>
       <span class="meta" id="role-line">loading role...</span>
+      <button class="btn ghost" id="theme-btn" title="Toggle light and dark theme">Light</button>
     </div>
     <div class="stats" id="stats-bar">
       <span class="stat"><span class="dot interview"></span>Ready to interview <b id="stat-interview">-</b></span>
@@ -283,12 +334,17 @@
       <span class="stat">Total <b id="stat-total">-</b></span>
       <span class="stat-sep"></span>
       <span class="stat scope" id="stats-scope">all runs</span>
-      <span class="stat">Run time <b id="stat-runwall">-</b></span>
-      <span class="stat">Avg ms per CV <b id="stat-avgms">-</b></span>
-      <span class="stat">CVs per minute <b id="stat-cpm">-</b></span>
-      <span class="stat">Tokens <b id="stat-tokens">-</b></span>
-      <span class="stat">Cost <b id="stat-cost">-</b></span>
-      <span class="stat">Model <b id="stat-model">-</b></span>
+      <details class="perf">
+        <summary>Run stats</summary>
+        <div class="perf-stats">
+          <span class="stat">Run time <b id="stat-runwall">-</b></span>
+          <span class="stat">Avg ms per CV <b id="stat-avgms">-</b></span>
+          <span class="stat">CVs per minute <b id="stat-cpm">-</b></span>
+          <span class="stat">Tokens <b id="stat-tokens">-</b></span>
+          <span class="stat">Cost <b id="stat-cost">-</b></span>
+          <span class="stat">Model <b id="stat-model">-</b></span>
+        </div>
+      </details>
     </div>
     <nav class="tabs">
       <button class="tab active" data-tab="screen">Screen</button>
@@ -981,7 +1037,11 @@ function addBatchRow(row) {
     (row.needsReview ? '<span class="marker">review</span>' : "") +
     (row.stale ? '<span class="stale">stale</span>' : "");
   el.addEventListener("click", () => openDetail(row.id));
-  $("batch-results").prepend(el);
+  const wrap = $("batch-results");
+  wrap.prepend(el);
+  // The list is a live ticker, not history: keep the newest rows and drop the rest,
+  // or a 300-CV folder leaves 300 nodes inside a 320px box for no reason.
+  while (wrap.childNodes.length > 50) wrap.removeChild(wrap.lastChild);
 }
 
 function updateBatchProgress(ev) {
@@ -1012,14 +1072,30 @@ function updateBatchProgress(ev) {
   if (ev.row) addBatchRow(ev.row);
 }
 
-async function streamBatch(jobId) {
+/** Read one SSE value, failing if nothing arrives for a while. The server pings every
+    15s, so silence past three pings means the socket is gone, not that the run is idle. */
+async function readWithTimeout(reader, ms) {
+  return new Promise((ok, fail) => {
+    const timer = setTimeout(() => fail(new Error("stream stalled")), ms);
+    reader.read().then(
+      (v) => { clearTimeout(timer); ok(v); },
+      (e) => { clearTimeout(timer); fail(e); },
+    );
+  });
+}
+
+/**
+ * One SSE connection, drained until the server closes it. A clean close means the job
+ * finished; an error means the connection dropped, which is not the job's fault.
+ */
+async function streamOnce(jobId) {
   const res = await fetch("/api/batch/stream?jobId=" + encodeURIComponent(jobId), { headers: authHeaders() });
   if (!res.ok || !res.body) throw new Error("stream failed");
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "";
   while (true) {
-    const { done, value } = await reader.read();
+    const { done, value } = await readWithTimeout(reader, 45_000);
     if (done) break;
     buf += dec.decode(value, { stream: true });
     let idx;
@@ -1033,6 +1109,21 @@ async function streamBatch(jobId) {
         try { ev = JSON.parse(payload); } catch (e) { continue; }
         handleBatchEvent(ev);
       }
+    }
+  }
+}
+
+async function streamBatch(jobId) {
+  // The server replays the latest state to a fresh connection, so a dropped socket
+  // (wifi blip, proxy timeout) costs nothing: re-attach and the stream picks up mid-run.
+  let attempts = 0;
+  while (true) {
+    try {
+      await streamOnce(jobId);
+      return;
+    } catch (err) {
+      if (++attempts > 3) throw err;
+      await new Promise((r) => setTimeout(r, 750 * attempts));
     }
   }
 }
@@ -1154,60 +1245,34 @@ async function runBatch() {
   await streamPromise;
 }
 
-async function runSingle() {
-  const cvText = $("paste-text").value.trim();
-  if (!cvText) { $("screen-status").textContent = "Paste a CV first, or choose files."; return; }
-  $("screen-status").innerHTML = '<span class="spin"></span> asking Jev...';
-  const res = await fetch("/api/screen", {
-    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ cvText, name: "", email: "", reset: true }),
-  });
-  const data = await res.json();
-  $("screen-status").textContent = "";
-  if (data.error) { $("screen-status").innerHTML = '<div class="note err">' + esc(data.error) + "</div>"; return; }
-  // One pasted CV also replaces the shortlist, exactly like a folder does.
-  if (data.cleared) { CANDIDATES = []; DETAIL_ID = null; }
-  const row = normRow(data.row || data.result);
-  if (row && row.id) {
-    CANDIDATES.unshift(row);
-    // One pasted CV is a run too, so the header reports its speed rather than leaving the
-    // user looking at store-wide averages that have nothing to do with what they just did.
-    RUN = {
-      startedAt: Date.now() - (data.elapsedMs || 0),
-      total: 1,
-      done: 1,
-      failed: 0,
-      tokens: row.tokens || 0,
-      costUsd: row.costUsd || 0,
-      wallMs: data.elapsedMs || 0,
-      active: false,
-    };
-    updateStats();
-    openDetail(row.id);
-  }
-}
-
 $("screen-btn").addEventListener("click", async () => {
   if (BATCH_RUNNING) return;
   const hasFiles = SELECTED_FILES.length > 0;
   const hasPaste = $("paste-text").value.trim().length > 0;
   if (!hasFiles && !hasPaste) { $("screen-status").textContent = "Choose files or paste a CV first."; return; }
+  // One path for everything: the batch job swallows pasted text as a single chunk, so
+  // files and paste share one job, one progress bar, one reset, and one done handler.
+  if (MODE === "mock" && !hasFiles) {
+    $("screen-status").textContent = "The offline demo screens the sample folder only. Run npm run ui to screen a pasted CV.";
+    return;
+  }
   BATCH_RUNNING = true;
   $("screen-btn").disabled = true;
   $("screen-btn").textContent = "Screening...";
   $("screen-status").textContent = "";
   try {
-    if (hasFiles) {
-      await runBatch();
-    } else {
-      await runSingle();
+    await runBatch();
+    // One pasted CV opens its detail the moment the run lands, as the old single-screen
+    // path did; the done event kicked off a shortlist refresh, so give it a beat.
+    if (hasPaste && !hasFiles) {
+      await new Promise((r) => setTimeout(r, 100));
+      const row = CANDIDATES.find((r) => (r.sourceFile || "").startsWith("pasted")) || CANDIDATES[0];
+      if (row) openDetail(row.id);
     }
   } catch (err) {
     $("screen-status").innerHTML = '<div class="note err">' + esc(String(err)) + "</div>";
   } finally {
-    // The single-CV path has no event stream to reset these, so it used to leave the button
-    // stuck on "Screening..." and the app refusing every later click. The batch path resets
-    // them on its done event too, and doing it twice is harmless.
+    // The batch done event resets these too; doing it twice is harmless.
     BATCH_RUNNING = false;
     $("screen-btn").disabled = false;
     $("screen-btn").textContent = "Screen with Jev";
@@ -1251,14 +1316,17 @@ function renderCandidates() {
   const cols = dimensionColumns();
   const thead = $("cand-thead");
   const sortArrow = (key) => (SORT.key === key ? (SORT.dir < 0 ? " &#9660;" : " &#9650;") : "");
+  const aSort = (key) => (SORT.key === key ? (SORT.dir < 0 ? "descending" : "ascending") : "none");
+  const th = (key, label, extra) =>
+    '<th data-key="' + key + '" scope="col" aria-sort="' + aSort(key) + '"' + (extra ? " " + extra : "") + ">" + label + sortArrow(key) + "</th>";
   thead.innerHTML =
     "<tr>" +
-    '<th data-key="name">Name' + sortArrow("name") + "</th>" +
-    '<th data-key="sourceFile">File' + sortArrow("sourceFile") + "</th>" +
-    '<th data-key="score">Score' + sortArrow("score") + "</th>" +
-    '<th data-key="verdict">Verdict' + sortArrow("verdict") + "</th>" +
-    '<th data-key="needsReview">Review' + sortArrow("needsReview") + "</th>" +
-    cols.map((c) => '<th data-key="dim:' + esc(c.id) + '" title="' + esc(c.label) + '">' + esc(c.label) + sortArrow("dim:" + c.id) + "</th>").join("") +
+    th("name", "Name") +
+    th("sourceFile", "File") +
+    th("score", "Score") +
+    th("verdict", "Verdict") +
+    th("needsReview", "Review") +
+    cols.map((c) => th("dim:" + c.id, esc(c.label), 'title="' + esc(c.label) + '"')).join("") +
     "</tr>";
   thead.querySelectorAll("th").forEach((th) => {
     th.addEventListener("click", () => {
@@ -1319,9 +1387,9 @@ function renderCandidates() {
       const pct = Math.round((d.value || 0) * 100);
       return '<td class="dim"><span class="mini"><i class="' + grade(d.value) + '" style="width:' + pct + '%"></i></span></td>';
     }).join("");
-    return "<tr data-id=\"" + r.id + "\" class=\"" + (DETAIL_ID === r.id ? "selected" : "") + "\">" +
-      "<td>" + esc(prettyName(r.name) || r.sourceFile) + (r.stale ? ' <span class="stale">stale</span>' : "") + "</td>" +
-      "<td>" + esc(r.sourceFile || "-") + "</td>" +
+    return "<tr data-id=\"" + r.id + "\" tabindex=\"0\" class=\"" + (DETAIL_ID === r.id ? "selected" : "") + "\">" +
+      '<td class="td-ellipsis">' + esc(prettyName(r.name) || r.sourceFile) + (r.stale ? ' <span class="stale">stale</span>' : "") + "</td>" +
+      '<td class="td-ellipsis">' + esc(r.sourceFile || "-") + "</td>" +
       '<td class="num">' + (r.score != null ? r.score.toFixed(3) : "-") + "</td>" +
       '<td><span class="badge ' + badgeClass(v) + '">' + esc(verdictLabel(v)) + "</span></td>" +
       '<td>' + (r.needsReview ? '<span class="marker">&#9679; review</span>' : "") + "</td>" +
@@ -1330,6 +1398,13 @@ function renderCandidates() {
   }).join("");
   tbody.querySelectorAll("tr[data-id]").forEach((tr) => {
     tr.addEventListener("click", () => openDetail(Number(tr.dataset.id)));
+    tr.addEventListener("keydown", (e) => {
+      // A row is a button for keyboard users too: enter or space opens the detail.
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openDetail(Number(tr.dataset.id));
+      }
+    });
   });
 }
 
@@ -1453,7 +1528,12 @@ function questionFor(dimId) {
 
 async function openDetail(id) {
   DETAIL_ID = id;
-  renderCandidates();
+  // Paint the selection without rebuilding the whole table for one class change: the
+  // table re-renders only on filter, search, sort and row add, never on a plain click.
+  const prev = document.querySelector("tr[data-id].selected");
+  if (prev) prev.classList.remove("selected");
+  const next = document.querySelector('tr[data-id="' + id + '"]');
+  if (next) next.classList.add("selected");
   const panel = $("detail-panel");
   panel.innerHTML = '<div class="empty"><span class="spin"></span> Loading...</div>';
   let row = CANDIDATES.find((r) => r.id === id);
@@ -2002,8 +2082,25 @@ $("rescan-btn").addEventListener("click", async () => {
   }
 });
 
+/* ------------------------------------------------------------------ theme */
+/** The theme is the last render preference a user expresses, so it beats the OS. */
+const THEME_KEY = "cv_screen_theme";
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $("theme-btn").textContent = t === "light" ? "Dark" : "Light";
+  localStorage.setItem(THEME_KEY, t);
+}
+$("theme-btn").addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+});
+
 /* ------------------------------------------------------------------ boot */
 (async function boot() {
+  // Show the saved theme (or the system's) before the first paint of data.
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  if (savedTheme === "light" || savedTheme === "dark") applyTheme(savedTheme);
+  else if (matchMedia && matchMedia("(prefers-color-scheme: light)").matches) applyTheme("light");
+  else applyTheme("dark");
   await loadData();
   populatePresets();
   renderSettings();

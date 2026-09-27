@@ -74,6 +74,41 @@ export function rowFromStored(run: StoredRun | SlimStored): ApiRow {
   };
 }
 
+export interface SlimProgressRow {
+  id: number;
+  name: string;
+  sourceFile: string;
+  composite: number;
+  recommendation: ApiRow["recommendation"];
+  needsReview: boolean;
+  stale: boolean;
+  costUsd: number;
+  elapsedMs: number;
+  tokens: number;
+  fields: Record<string, string>;
+}
+
+/**
+ * The row shape the live stream carries. The batch list in the UI and the bench and
+ * smoke scripts all read from this set; nothing else needs the dimensions, strengths
+ * or explanation, and the detail view re-fetches those on click anyway.
+ */
+export function slimProgressRow(r: ApiRow): SlimProgressRow {
+  return {
+    id: r.id,
+    name: r.name,
+    sourceFile: r.sourceFile,
+    composite: r.composite,
+    recommendation: r.recommendation,
+    needsReview: r.needsReview,
+    stale: r.stale,
+    costUsd: r.costUsd,
+    elapsedMs: r.elapsedMs,
+    tokens: r.tokens,
+    fields: r.fields,
+  };
+}
+
 export interface Histogram {
   id: string;
   label: string;

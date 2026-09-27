@@ -43,6 +43,15 @@ const RETRYABLE = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Exponential backoff with ±25% jitter. Jitter matters at batch concurrency: without it
+ * every in-flight request times out together and the whole pool hits the API in
+ * lockstep, which is exactly what triggers the next 429.
+ */
+function retryDelay(attempt: number): number {
+  return Math.round(500 * 2 ** (attempt - 1) * (0.75 + Math.random() * 0.5));
+}
+
 export async function systemOne(
   state: unknown,
   questions: Questions,
@@ -79,7 +88,7 @@ export async function systemOne(
       if (!res.ok) {
         if (RETRYABLE.has(res.status) && attempt < maxAttempts) {
           lastErr = new TypeSafeError(`HTTP ${res.status}`, res.status, text);
-          await sleep(500 * 2 ** (attempt - 1));
+          await sleep(retryDelay(attempt));
           continue;
         }
         throw new TypeSafeError(
@@ -97,7 +106,7 @@ export async function systemOne(
       lastErr = err;
       const retryable = err instanceof TypeSafeError ? err.status === undefined : true;
       if (attempt < maxAttempts && retryable) {
-        await sleep(500 * 2 ** (attempt - 1));
+        await sleep(retryDelay(attempt));
         continue;
       }
       throw err;

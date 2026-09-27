@@ -180,8 +180,11 @@ if (saved.status === 200) {
 
   /* ------------------------ 5. adding a field needs the model, and says so */
   const withField = JSON.parse(JSON.stringify(saved.body.policy));
+  // The id must not collide with a field the saved policy already uses (this role has
+  // "technical_depth" enabled by default), or validation rightly refuses the save.
+  const freshId = "smoke_field_" + Math.floor(Math.random() * 1e6);
   withField.extraFields.push({
-    id: "technical_depth",
+    id: freshId,
     label: "Hands-on depth",
     kind: "score",
     mode: "weight",
