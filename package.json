@@ -1,0 +1,13 @@
+{
+  "name": "typesafe-jev",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix cv-screen run dev",
+    "ui": "npm --prefix cv-screen run ui",
+    "screen": "npm --prefix cv-screen run screen",
+    "test": "npm --prefix cv-screen run test",
+    "typecheck": "npm --prefix cv-screen run typecheck"
+  }
+}

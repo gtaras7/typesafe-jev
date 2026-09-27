@@ -9,10 +9,11 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev": "tsx src/server.ts",
+    "ui": "tsx src/server.ts",
     "screen": "tsx src/cli.ts",
     "test": "tsx --test src/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "ui": "tsx src/server.ts",
     "report": "tsx scripts/report.ts",
     "probe": "tsx scripts/probe.ts",
     "ingest": "tsx src/ingest.ts",
