@@ -1,0 +1,15 @@
+# Pre-registered expectation key for the CV screening eval harness.
+#
+# Commit this file BEFORE any live run. It is the proof that the labels were fixed
+# before the model was called, which is the only thing that makes an agreement
+# figure mean anything. See evals/README.md.
+#
+#   npm run freeze-key            write or refresh this file
+#   npm run freeze-key -- --check fail if evals/labels.json no longer matches
+
+key          b3b53d51b701493313455b1afe030e569c9e691a1bcb6c90ce96d5f54d516386
+cvs          5
+labels       50
+determinate  50
+undetermined 0
+frozen       2026-10-02

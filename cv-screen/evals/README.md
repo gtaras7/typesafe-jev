@@ -24,6 +24,72 @@ Every label carries a `quote` copied verbatim from the CV it is about, and
 fabricated justification impossible to leave lying around. It does not make the
 inference correct: a real quote can still support a wrong conclusion.
 
+## Pre-registration: freeze the key before you call the model
+
+An agreement figure only means something if the key was fixed *before* the answers
+arrived. A labels file that was written or adjusted while a Jev answer was visible on the
+screen has stopped being independent, and what it measures from then on is the alignment,
+not the model. That is the failure this harness is most exposed to, because the person
+writing the labels is also the person reading the disagreements.
+
+So the rule is: **key first, then model, and prove the order.**
+
+```bash
+npm run freeze-key            # write or refresh evals/KEY.sha256
+git add evals/KEY.sha256      # commit it BEFORE the run
+npm run eval                  # only now call the model
+npm run freeze-key -- --check # after any later edit, fails if the key moved
+```
+
+`evals/labels.json` is gitignored on purpose, because it quotes absolute paths and real
+people's documents, so the file itself cannot be the record. `evals/KEY.sha256` can be, and
+is. It holds a sha256 over the labels, plus the counts, plus the date it was frozen.
+
+`npm run key-scaffold` writes `evals/labels.sample-cvs.json`: the 40 sample CVs with all ten
+questions and a verbatim quote for each, and **no expected values at all**, because the
+judgment has to be a person's reading rather than a guess. Each note carries the legal values
+for its question, and `freeze-key` refuses while those notes still start with TODO, so a
+half-finished reading cannot become the pre-registered one. Unlike `labels.json`, a key over
+the sample corpus is safe to commit, which is the point of it existing.
+
+What the fingerprint covers, and what it deliberately ignores:
+
+- **Covered:** every CV's key, its source kind, which document it is, and for every
+  question its expected value and the quote that justifies it. Entries are sorted, so the
+  key order and the label order do not matter.
+- **Ignored:** the absolute `path` prefix, which is reduced to the file name, because
+  moving a CV between two folders changes none of the labels. Also ignored: `name` and
+  `note`, which are for humans, and the quote on an `undetermined` label, which makes no
+  claim and so has nothing to freeze.
+
+Consequence worth knowing: because the fingerprint ignores those fields, it is the same on
+your machine and on anyone else's, which is what lets a reader check it. It also means the
+fingerprint cannot be used to hide a label edit. Change an expected value and the hash
+moves, `--check` fails with exit 1, and `evals/KEY.sha256` shows the change in the diff.
+
+## Where a labelled CV can come from
+
+Three kinds, and each one has a different reason to exist:
+
+| `kind` | Points at | Use it for |
+| --- | --- | --- |
+| `pdf` | an absolute `path` on this machine | documents that cannot be committed |
+| `fixture` | a `fixtureKey` into `fixtures/cvs.json` | small hand-written cases, inline text |
+| `sample` | a `file` name inside `fixtures/sample-cvs` | the 40 generated CVs that ship with the repo |
+
+`sample` exists so a run can be reproduced by someone else. The corpus and its
+`manifest.json` are committed, so a reader can extract the same text and grade the same
+answers. It is resolved with the same containment rule the app uses for `SCAN_ROOT`: the
+*resolved real path* must stay inside `fixtures/sample-cvs`, so a `..` that lands back
+inside is normalised and one that escapes is refused.
+
+Remember that the manifest is the generator's *intent*, not ground truth. A phrase like
+`steady growth at one employer` describes what the generator wrote, which is often a title
+bump on a profile that also says it has zero years of experience. Keying against those
+phrases measures agreement with the generator. Keying against the questions in this repo
+measures the model. They are not the same number, and only the second one says anything
+about the app.
+
 ## What it measures, and what it deliberately does not
 
 It grades **raw per-question answers** against labels: the boolean for a Noul, the
@@ -75,9 +141,11 @@ error, so treat an array as a last resort and explain it.
 
 ## Adding a CV
 
-Add an entry under `cvs` with `kind` of `"pdf"` (plus an absolute `path`) or
-`"fixture"` (plus a `fixtureKey` into `fixtures/cvs.json`), and all ten question labels.
-`--verify-labels` will tell you if you missed any.
+Add an entry under `cvs` with `kind` of `"pdf"` (plus an absolute `path`), `"fixture"`
+(plus a `fixtureKey` into `fixtures/cvs.json`), or `"sample"` (plus a `file` name inside
+`fixtures/sample-cvs`), and all ten question labels. `--verify-labels` will tell you if you
+missed any, and `npm run freeze-key` will tell you whether the key has moved since it was
+frozen.
 
 ## Current standing, and what it does NOT mean
 

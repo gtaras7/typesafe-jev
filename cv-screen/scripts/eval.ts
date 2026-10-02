@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { FOOD_INDUSTRY_QA as role } from "../src/role-spec.js";
 import { buildQuestions } from "../src/questions.js";
 import { screenCv } from "../src/screen.js";
+import { resolveSamplePath } from "../src/sample-corpus.js";
 import {
   buildResults,
   loadLabels,
@@ -35,6 +36,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 const EXTRACTOR = join(ROOT, "scripts", "pdf_to_text.py");
 const FIXTURES = join(ROOT, "fixtures", "cvs.json");
+const SAMPLES = join(ROOT, "fixtures", "sample-cvs");
 
 const { values, positionals } = parseArgs({
   options: {
@@ -88,6 +90,11 @@ function extractPdf(path: string): Promise<string> {
 
 async function sourceTextOf(cv: CvLabels): Promise<string> {
   if (cv.kind === "fixture") return fixtureText(cv.fixtureKey ?? cv.source);
+  if (cv.kind === "sample") {
+    const name = cv.file ?? cv.source;
+    if (!name) throw new Error(`${cv.source} has kind "sample" but no file`);
+    return extractPdf(resolveSamplePath(SAMPLES, name));
+  }
   if (!cv.path) throw new Error(`${cv.source} has kind "pdf" but no path`);
   if (!existsSync(cv.path)) throw new Error(`missing PDF: ${cv.path}`);
   return extractPdf(cv.path);

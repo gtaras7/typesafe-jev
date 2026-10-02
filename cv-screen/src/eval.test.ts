@@ -215,9 +215,13 @@ test("evals/labels.json is structurally sound against the real question set", ()
     const { missingQuestions, extraQuestions } = verifyLabels(cv, "unused", ids);
     assert.deepEqual(missingQuestions, [], `${key} is missing labels`);
     assert.deepEqual(extraQuestions, [], `${key} has unknown question ids`);
-    assert.ok(cv.kind === "pdf" || cv.kind === "fixture", `${key} has a bad kind`);
+    assert.ok(
+      cv.kind === "pdf" || cv.kind === "fixture" || cv.kind === "sample",
+      `${key} has a bad kind`,
+    );
     if (cv.kind === "fixture") assert.ok(cv.fixtureKey, `${key} needs a fixtureKey`);
     if (cv.kind === "pdf") assert.ok(cv.path, `${key} needs a path`);
+    if (cv.kind === "sample") assert.ok(cv.file, `${key} needs a file`);
     // every label must carry a non-empty justification
     for (const [id, lab] of Object.entries(cv.labels)) {
       assert.ok(lab.quote && lab.quote.trim().length > 0, `${key}/${id} has no quote`);

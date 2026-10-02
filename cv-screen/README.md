@@ -335,7 +335,7 @@ matched on the document's content hash rather than its file name.
 
 ```bash
 npm run ui                                    # the app, http://localhost:8799
-npm test                                      # 63 tests, no API key, no network
+npm test                                      # 72 tests, no API key, no network
 npm run typecheck
 npm run ingest -- PATH                        # the same job headless, prints a table
 npm run ingest -- PATH --rescore              # re-score with no API calls, 0 tokens
@@ -346,6 +346,8 @@ npm run sample-cvs                            # 40 synthetic CVs into fixtures/s
 npm run bench -- --path fixtures/sample-cvs --concurrency 8 --extrapolate 300
 npm run smoke                                 # live end-to-end check
 npm run eval -- --verify-labels               # check the eval labels offline, free
+npm run key-scaffold                          # 400 labels for the 40 sample CVs, values left blank
+npm run freeze-key                            # pre-register the eval key, before any run
 npm run eval                                  # grade raw judgments against labelled CVs
 npm run report -- out/run.json -o out/report.html
 npm run probe                                 # dump the raw answers for the two fixtures
@@ -389,7 +391,7 @@ a score.
 | `docs/typesafe-notes.md`               | The TypeSafe docs, distilled, with sources                                                                        |
 | `scripts/make-sample-cvs.py`           | The deterministic synthetic corpus                                                                                |
 | `scripts/smoke.ts`, `scripts/bench.ts` | Live end-to-end checks, and throughput and cost                                                                   |
-| `evals/`                               | The eval harness and its honest caveats                                                                           |
+| `evals/`                               | The eval harness, its labelled key and `KEY.sha256`, the frozen proof of when it was fixed |
 | `data/`                                | The store, the saved policy and a copy of every screened CV. Gitignored                                           |
 
 
@@ -397,7 +399,7 @@ a score.
 
 ## Tests
 
-`npm test` runs 63 tests with no API key and no network. They lock down the arithmetic that used
+`npm test` runs 72 tests with no API key and no network. They lock down the arithmetic that used
 to live inside a prompt: caps, gates, partial credit, the three zone treatment of a close call,
 the normaliser, the CSV escaping, and that re-scoring never calls the model. The six core
 dimensions are also checked to be bit identical to the original verified role, so the food

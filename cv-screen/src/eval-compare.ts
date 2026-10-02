@@ -29,14 +29,26 @@ export interface QuestionLabel {
   note?: string;
 }
 
+/**
+ * Where a labelled CV comes from.
+ *
+ *  pdf      an absolute path on this machine, for documents that cannot be committed
+ *  fixture  inline text in fixtures/cvs.json, for small hand-written cases
+ *  sample   a bare filename inside fixtures/sample-cvs, for the 40 generated CVs that ship
+ *           with the repository, so a run over them can be reproduced by anyone
+ */
+export type CvSourceKind = "pdf" | "fixture" | "sample";
+
 export interface CvLabels {
-  kind: "pdf" | "fixture";
+  kind: CvSourceKind;
   /** Human-readable source identifier, e.g. the filename or fixture key. */
   source: string;
   /** Absolute PDF path, present when kind is "pdf". */
   path?: string;
   /** Fixture key into fixtures/cvs.json, present when kind is "fixture". */
   fixtureKey?: string;
+  /** Filename inside fixtures/sample-cvs, present when kind is "sample". */
+  file?: string;
   name?: string;
   note?: string;
   labels: Record<string, QuestionLabel>;
